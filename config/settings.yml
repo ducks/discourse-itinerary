@@ -1,0 +1,4 @@
+plugins:
+  itinerary_enabled:
+    default: true
+    client: true

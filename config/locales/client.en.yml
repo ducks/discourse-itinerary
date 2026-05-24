@@ -1,0 +1,16 @@
+en:
+  itinerary:
+    title: "Itinerary"
+    no_items: "No itinerary items yet."
+    item_types:
+      flight: "Flight"
+      train: "Train"
+      hotel: "Hotel"
+      event: "Event"
+      transfer: "Transfer"
+      note: "Note"
+    statuses:
+      planned: "Planned"
+      booked: "Booked"
+      checked_in: "Checked in"
+      completed: "Completed"
