@@ -5,11 +5,10 @@ require "rails_helper"
 describe DiscourseItinerary::Itinerary do
   fab!(:user)
   fab!(:category)
-  fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }
   let(:guardian) { Guardian.new(user) }
 
   def trip(starts_at: "2026-09-20", ends_at: "2026-09-25", location: "Madrid")
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
     topic.custom_fields["itinerary_ends_at"] = ends_at
@@ -19,7 +18,7 @@ describe DiscourseItinerary::Itinerary do
   end
 
   def item(parent_trip:, starts_at:, item_type: "flight", **extra)
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = item_type
     topic.custom_fields["itinerary_parent_trip_id"] = parent_trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -34,7 +33,7 @@ describe DiscourseItinerary::Itinerary do
     end
 
     it "is false for items with other types" do
-      t = Fabricate(:topic, category: category, tags: [tag])
+      t = Fabricate(:topic, category: category)
       t.custom_fields["itinerary_item_type"] = "flight"
       t.save_custom_fields
       expect(described_class.trip?(t)).to be false
@@ -59,7 +58,7 @@ describe DiscourseItinerary::Itinerary do
     end
 
     it "returns nil when the topic isn't a trip" do
-      flight = Fabricate(:topic, category: category, tags: [tag])
+      flight = Fabricate(:topic, category: category)
       flight.custom_fields["itinerary_item_type"] = "flight"
       flight.save_custom_fields
       expect(described_class.find(flight.id, guardian: guardian)).to be_nil
@@ -67,7 +66,7 @@ describe DiscourseItinerary::Itinerary do
 
     it "returns nil when the guardian can't see the topic" do
       private_category = Fabricate(:private_category, group: Fabricate(:group))
-      trip_topic = Fabricate(:topic, category: private_category, tags: [tag])
+      trip_topic = Fabricate(:topic, category: private_category)
       trip_topic.custom_fields["itinerary_item_type"] = "trip"
       trip_topic.save_custom_fields
       expect(described_class.find(trip_topic.id, guardian: guardian)).to be_nil
@@ -99,7 +98,7 @@ describe DiscourseItinerary::Itinerary do
       trip_topic = trip
       itinerary = described_class.find(trip_topic.id, guardian: guardian)
 
-      orphan = Fabricate(:topic, category: category, tags: [tag])
+      orphan = Fabricate(:topic, category: category)
       orphan.custom_fields["itinerary_item_type"] = "flight"
       orphan.custom_fields["itinerary_parent_trip_id"] = trip_topic.id
       orphan.save_custom_fields
@@ -110,7 +109,7 @@ describe DiscourseItinerary::Itinerary do
     it "respects guardian visibility on the items themselves" do
       trip_topic = trip
       private_category = Fabricate(:private_category, group: Fabricate(:group))
-      private_item = Fabricate(:topic, category: private_category, tags: [tag])
+      private_item = Fabricate(:topic, category: private_category)
       private_item.custom_fields["itinerary_item_type"] = "flight"
       private_item.custom_fields["itinerary_parent_trip_id"] = trip_topic.id
       private_item.custom_fields["itinerary_starts_at"] = "2026-09-20T14:30"

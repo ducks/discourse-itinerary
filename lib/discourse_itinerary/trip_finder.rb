@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 module DiscourseItinerary
-  # Finds trip topics — those carrying the itinerary tag with
-  # `itinerary_item_type = 'trip'`. Optionally scoped to one category.
+  # Finds trip topics: those with `itinerary_item_type = 'trip'`.
+  # Optionally scoped to one category; defaults to the configured
+  # itinerary category if no explicit category is passed.
   #
   # Returns plain Topic records, guardian-secured for visibility.
   # Callers wrap them in DiscourseItinerary::Itinerary if they need
@@ -20,8 +21,6 @@ module DiscourseItinerary
       scope =
         Topic
           .secured(@guardian)
-          .joins(:tags)
-          .where(tags: { name: DiscourseItinerary::ITINERARY_TAG })
           .joins(
             "INNER JOIN topic_custom_fields type_cf " \
               "ON type_cf.topic_id = topics.id " \

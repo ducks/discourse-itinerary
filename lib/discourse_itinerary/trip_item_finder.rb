@@ -20,8 +20,6 @@ module DiscourseItinerary
     def call
       Topic
         .secured(@guardian)
-        .joins(:tags)
-        .where(tags: { name: DiscourseItinerary::ITINERARY_TAG })
         .joins(
           "INNER JOIN topic_custom_fields parent " \
             "ON parent.topic_id = topics.id " \

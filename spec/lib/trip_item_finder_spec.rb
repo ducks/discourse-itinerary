@@ -5,11 +5,10 @@ require "rails_helper"
 describe DiscourseItinerary::TripItemFinder do
   fab!(:user)
   fab!(:category)
-  fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }
   let(:guardian) { Guardian.new(user) }
 
   def trip
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = "2026-09-20"
     topic.save_custom_fields
@@ -17,7 +16,7 @@ describe DiscourseItinerary::TripItemFinder do
   end
 
   def item(parent_trip:, starts_at:, item_type: "flight", category: self.category)
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = item_type
     topic.custom_fields["itinerary_parent_trip_id"] = parent_trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -47,22 +46,10 @@ describe DiscourseItinerary::TripItemFinder do
 
     it "excludes items without a starts_at value" do
       trip_topic = trip
-      orphan = Fabricate(:topic, category: category, tags: [tag])
+      orphan = Fabricate(:topic, category: category)
       orphan.custom_fields["itinerary_item_type"] = "flight"
       orphan.custom_fields["itinerary_parent_trip_id"] = trip_topic.id
       orphan.save_custom_fields
-
-      result = described_class.new(trip: trip_topic, guardian: guardian).call
-      expect(result).to be_empty
-    end
-
-    it "excludes items without the itinerary tag" do
-      trip_topic = trip
-      untagged = Fabricate(:topic, category: category)
-      untagged.custom_fields["itinerary_item_type"] = "flight"
-      untagged.custom_fields["itinerary_parent_trip_id"] = trip_topic.id
-      untagged.custom_fields["itinerary_starts_at"] = "2026-09-20T14:30"
-      untagged.save_custom_fields
 
       result = described_class.new(trip: trip_topic, guardian: guardian).call
       expect(result).to be_empty
