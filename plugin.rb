@@ -74,6 +74,7 @@ after_initialize do
     register_topic_custom_field_type(field, type)
   end
 
+  require_relative "lib/discourse_itinerary/itinerary"
   require_relative "lib/discourse_itinerary/itinerary_finder"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
