@@ -1,4 +1,5 @@
 import Component from "@glimmer/component";
+import avatar from "discourse/helpers/avatar";
 import { shortDate } from "discourse/lib/formatter";
 
 // Renders one trip's timeline: a header with trip metadata, then
@@ -45,6 +46,12 @@ export default class TripTimeline extends Component {
       <header class="itinerary-trip__header">
         <h2 class="itinerary-trip__title">{{@trip.title}}</h2>
         <div class="itinerary-trip__meta">
+          {{#if @trip.creator}}
+            <span class="itinerary-trip__creator">
+              {{avatar @trip.creator imageSize="small"}}
+              <span class="itinerary-trip__creator-name">{{@trip.creator.username}}</span>
+            </span>
+          {{/if}}
           {{#if @trip.starts_at}}
             <span class="itinerary-trip__dates">
               {{@trip.starts_at}}

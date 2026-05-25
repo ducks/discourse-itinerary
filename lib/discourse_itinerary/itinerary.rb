@@ -60,6 +60,13 @@ module DiscourseItinerary
       @topic.category
     end
 
+    # The User who created the trip topic. Returns nil if the topic
+    # was created by a deleted user (foreign key is preserved but the
+    # row has gone).
+    def creator
+      @topic.user
+    end
+
     def starts_at
       cf("itinerary_starts_at")
     end
