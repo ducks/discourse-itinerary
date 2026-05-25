@@ -57,6 +57,26 @@ near term.
 - A tag named `itinerary` (auto-created by the plugin if missing on first use,
   or created manually in Admin → Tags)
 
+## Local development
+
+A `shell.nix` is shipped for the linter/test workflow:
+
+```sh
+nix-shell                              # ruby 3.3 + bundler + native deps
+bundle install                         # installs gems into ./.gems
+bundle exec rubocop                    # lint Ruby
+bundle exec stree check $(git ls-files '*.rb') Gemfile
+```
+
+To run the specs you need a Discourse checkout — symlink the plugin in and
+run rspec from there:
+
+```sh
+ln -s $PWD ~/discourse/discourse/plugins/discourse-itinerary
+cd ~/discourse/discourse
+bin/rspec plugins/discourse-itinerary/spec/
+```
+
 ## License
 
 MIT.
