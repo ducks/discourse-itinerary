@@ -32,9 +32,15 @@ module ::DiscourseItinerary
   ITINERARY_TAG = "itinerary"
 end
 
-DiscourseItinerary::CUSTOM_FIELDS.each { |field| register_topic_custom_field_type(field, :string) }
-
 after_initialize do
+  # Register the topic custom field types inside after_initialize so
+  # Rails has autoloaded the Topic constant by the time we reach for
+  # it. The top-level form raises NameError on `Topic` during
+  # `rake db:create` and other early-boot tasks.
+  DiscourseItinerary::CUSTOM_FIELDS.each do |field|
+    register_topic_custom_field_type(field, :string)
+  end
+
   require_relative "lib/discourse_itinerary/itinerary_finder"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
