@@ -98,7 +98,7 @@ describe "Itinerary authoring" do
     expect {
       PostCreator.new(
         user,
-        title: "Bogus",
+        title: "Bogus item type validation",
         raw: "Should not save.",
         category: category.id,
         tags: [DiscourseItinerary::ITINERARY_TAG],
