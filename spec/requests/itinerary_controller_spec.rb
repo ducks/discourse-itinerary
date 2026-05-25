@@ -9,8 +9,10 @@ describe ItineraryController, type: :request do
 
   before { SiteSetting.itinerary_enabled = true }
 
-  def trip(starts_at: "2026-09-20", category: self.category, title: "Some Trip")
-    topic = Fabricate(:topic, category: category, tags: [tag], title: title)
+  def trip(starts_at: "2026-09-20", category: self.category, title: nil)
+    attrs = { category: category, tags: [tag] }
+    attrs[:title] = title if title
+    topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
     topic.custom_fields["itinerary_ends_at"] = "2026-09-25"
@@ -31,8 +33,8 @@ describe ItineraryController, type: :request do
 
   describe "#index (GET /itinerary/trips)" do
     it "returns every visible trip sorted by starts_at" do
-      later = trip(starts_at: "2026-10-01", title: "Lisbon")
-      earlier = trip(starts_at: "2026-09-20", title: "Madrid")
+      later = trip(starts_at: "2026-10-01", title: "Lisbon vacation October 2026")
+      earlier = trip(starts_at: "2026-09-20", title: "Madrid working trip September")
 
       sign_in(user)
       get "/itinerary/trips.json"
