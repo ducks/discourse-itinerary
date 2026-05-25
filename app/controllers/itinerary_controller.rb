@@ -5,9 +5,11 @@ class ::ItineraryController < ::ApplicationController
 
   def show
     category = Category.find_by(slug: params[:category_slug])
-    raise Discourse::NotFound unless category
-
-    guardian.ensure_can_see!(category)
+    # 404 on both "doesn't exist" and "you can't see it" so the
+    # response doesn't leak the existence of categories the caller
+    # isn't allowed to know about. Matches the rest of Discourse's
+    # private-category handling.
+    raise Discourse::NotFound unless category && guardian.can_see?(category)
 
     items = DiscourseItinerary::ItineraryFinder.new(category: category, guardian: guardian).call
 
