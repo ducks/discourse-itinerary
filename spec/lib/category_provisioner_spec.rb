@@ -38,5 +38,21 @@ describe DiscourseItinerary::CategoryProvisioner do
       expect { described_class.ensure_category! }.not_to change { Category.count }
       expect(SiteSetting.itinerary_category_id).to eq(already.id)
     end
+
+    it "matches an existing category by slug regardless of name casing" do
+      lower = Fabricate(:category, name: "itinerary", slug: "itinerary")
+      SiteSetting.itinerary_category_id = -1
+
+      expect { described_class.ensure_category! }.not_to change { Category.count }
+      expect(SiteSetting.itinerary_category_id).to eq(lower.id)
+    end
+
+    it "matches an existing category by case-insensitive name when slug differs" do
+      shouty = Fabricate(:category, name: "ITINERARY", slug: "shouty-trips")
+      SiteSetting.itinerary_category_id = -1
+
+      expect { described_class.ensure_category! }.not_to change { Category.count }
+      expect(SiteSetting.itinerary_category_id).to eq(shouty.id)
+    end
   end
 end

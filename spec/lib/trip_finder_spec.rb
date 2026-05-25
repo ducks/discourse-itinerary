@@ -7,8 +7,10 @@ describe DiscourseItinerary::TripFinder do
   fab!(:category)
   let(:guardian) { Guardian.new(user) }
 
-  def trip(starts_at: "2026-09-20", category: self.category)
-    topic = Fabricate(:topic, category: category)
+  def trip(starts_at: "2026-09-20", category: self.category, user: nil)
+    attrs = { category: category }
+    attrs[:user] = user if user
+    topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
     topic.save_custom_fields
@@ -76,6 +78,15 @@ describe DiscourseItinerary::TripFinder do
 
       result = described_class.new(guardian: guardian).call
       expect(result.map(&:id)).to eq([with_starts.id, without_starts.id])
+    end
+
+    it "filters to trips created by a given user when created_by is provided" do
+      other_user = Fabricate(:user)
+      mine = trip(starts_at: "2026-09-20", user: user)
+      trip(starts_at: "2026-10-01", user: other_user)
+
+      result = described_class.new(guardian: guardian, created_by: user).call
+      expect(result.map(&:id)).to eq([mine.id])
     end
   end
 end
