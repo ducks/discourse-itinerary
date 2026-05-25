@@ -41,7 +41,10 @@ describe "Itinerary authoring" do
   end
 
   it "updates itinerary custom fields via PostRevisor" do
-    topic = Fabricate(:topic, category: category, tags: [tag], user: user)
+    # :topic_with_op also fabricates an OP. PostRevisor needs a real
+    # post to revise; bare :topic gives back a Topic with no posts and
+    # topic.first_post would be nil.
+    topic = Fabricate(:topic_with_op, category: category, tags: [tag], user: user)
     topic.custom_fields["itinerary_status"] = "planned"
     topic.custom_fields["itinerary_item_type"] = "flight"
     topic.save_custom_fields
