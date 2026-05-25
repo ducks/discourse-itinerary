@@ -7,13 +7,8 @@ require "rails_helper"
 describe "Itinerary authoring" do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[1]) }
   fab!(:category)
-  fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }
 
-  before do
-    SiteSetting.itinerary_enabled = true
-    SiteSetting.tagging_enabled = true
-    SiteSetting.tag_topic_allowed_groups = Group::AUTO_GROUPS[:everyone]
-  end
+  before { SiteSetting.itinerary_enabled = true }
 
   it "saves itinerary custom fields on topic creation" do
     creator =
@@ -22,7 +17,6 @@ describe "Itinerary authoring" do
         title: "Flight PDX to MAD",
         raw: "Confirmation details inside.",
         category: category.id,
-        tags: [DiscourseItinerary::ITINERARY_TAG],
         itinerary_item_type: "flight",
         itinerary_starts_at: "2026-09-20T14:30",
         itinerary_origin: "PDX",
@@ -44,7 +38,7 @@ describe "Itinerary authoring" do
     # :topic_with_op also fabricates an OP. PostRevisor needs a real
     # post to revise; bare :topic gives back a Topic with no posts and
     # topic.first_post would be nil.
-    topic = Fabricate(:topic_with_op, category: category, tags: [tag], user: user)
+    topic = Fabricate(:topic_with_op, category: category, user: user)
     topic.custom_fields["itinerary_status"] = "planned"
     topic.custom_fields["itinerary_item_type"] = "flight"
     topic.save_custom_fields
@@ -65,7 +59,6 @@ describe "Itinerary authoring" do
         title: "Engineering Madrid 2026",
         raw: "Trip workspace.",
         category: category.id,
-        tags: [DiscourseItinerary::ITINERARY_TAG],
         itinerary_item_type: "trip",
         itinerary_starts_at: "2026-09-20",
         itinerary_ends_at: "2026-09-25",
@@ -84,7 +77,6 @@ describe "Itinerary authoring" do
         title: "Flight PDX to MAD",
         raw: "Linked to a trip.",
         category: category.id,
-        tags: [DiscourseItinerary::ITINERARY_TAG],
         itinerary_item_type: "flight",
         itinerary_parent_trip_id: 42,
       )
@@ -101,7 +93,6 @@ describe "Itinerary authoring" do
         title: "Bogus item type validation",
         raw: "Should not save.",
         category: category.id,
-        tags: [DiscourseItinerary::ITINERARY_TAG],
         itinerary_item_type: "spaceflight",
       ).create
     }.to raise_error(Discourse::InvalidParameters, /spaceflight/)

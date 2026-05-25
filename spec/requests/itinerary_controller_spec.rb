@@ -5,12 +5,11 @@ require "rails_helper"
 describe ItineraryController, type: :request do
   fab!(:user)
   fab!(:category)
-  fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }
 
   before { SiteSetting.itinerary_enabled = true }
 
   def trip(starts_at: "2026-09-20", category: self.category, title: nil)
-    attrs = { category: category, tags: [tag] }
+    attrs = { category: category }
     attrs[:title] = title if title
     topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
@@ -22,7 +21,7 @@ describe ItineraryController, type: :request do
   end
 
   def item(parent_trip:, starts_at:, item_type: "flight", **extra)
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = item_type
     topic.custom_fields["itinerary_parent_trip_id"] = parent_trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -114,7 +113,7 @@ describe ItineraryController, type: :request do
     end
 
     it "returns 404 when the topic exists but isn't a trip" do
-      flight = Fabricate(:topic, category: category, tags: [tag])
+      flight = Fabricate(:topic, category: category)
       flight.custom_fields["itinerary_item_type"] = "flight"
       flight.save_custom_fields
 

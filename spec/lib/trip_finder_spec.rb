@@ -5,11 +5,10 @@ require "rails_helper"
 describe DiscourseItinerary::TripFinder do
   fab!(:user)
   fab!(:category)
-  fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }
   let(:guardian) { Guardian.new(user) }
 
   def trip(starts_at: "2026-09-20", category: self.category)
-    topic = Fabricate(:topic, category: category, tags: [tag])
+    topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
     topic.save_custom_fields
@@ -27,7 +26,7 @@ describe DiscourseItinerary::TripFinder do
     end
 
     it "excludes non-trip itinerary topics" do
-      item = Fabricate(:topic, category: category, tags: [tag])
+      item = Fabricate(:topic, category: category)
       item.custom_fields["itinerary_item_type"] = "flight"
       item.custom_fields["itinerary_starts_at"] = "2026-09-20T14:30"
       item.save_custom_fields
@@ -36,14 +35,11 @@ describe DiscourseItinerary::TripFinder do
       expect(result).to be_empty
     end
 
-    it "excludes topics without the itinerary tag" do
-      untagged = Fabricate(:topic, category: category)
-      untagged.custom_fields["itinerary_item_type"] = "trip"
-      untagged.custom_fields["itinerary_starts_at"] = "2026-09-20"
-      untagged.save_custom_fields
+    it "excludes topics without itinerary_item_type set" do
+      bare = Fabricate(:topic, category: category)
 
       result = described_class.new(guardian: guardian).call
-      expect(result).to be_empty
+      expect(result).not_to include(bare)
     end
 
     it "filters by category when category is provided" do
@@ -74,7 +70,7 @@ describe DiscourseItinerary::TripFinder do
 
     it "sorts trips without starts_at last" do
       with_starts = trip(starts_at: "2026-09-20")
-      without_starts = Fabricate(:topic, category: category, tags: [tag])
+      without_starts = Fabricate(:topic, category: category)
       without_starts.custom_fields["itinerary_item_type"] = "trip"
       without_starts.save_custom_fields
 

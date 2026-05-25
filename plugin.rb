@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.3.0
+# version: 0.4.0
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
@@ -37,10 +37,18 @@ module ::DiscourseItinerary
   # `itinerary_parent_trip_id`.
   VALID_ITEM_TYPES = %w[trip flight train hotel event transfer note].freeze
 
-  # The tag that marks a topic as an itinerary item. Lives in the
-  # standard Discourse tag system so existing UI for tag management
-  # applies to it.
-  ITINERARY_TAG = "itinerary"
+  # Name used when auto-creating the itinerary category at boot.
+  # Admins can rename the category afterwards; the plugin only
+  # references it via the `itinerary_category_id` site setting.
+  DEFAULT_CATEGORY_NAME = "Itinerary"
+
+  # Returns the configured itinerary category, or nil if the setting
+  # is unset / points at a deleted category.
+  def self.category
+    id = SiteSetting.itinerary_category_id
+    return nil if id.blank? || id.to_i <= 0
+    Category.find_by(id: id)
+  end
 
   # Coerce a raw incoming value for a known custom field to its
   # storage form. Returns nil for blanks. Raises on values that
@@ -77,9 +85,18 @@ after_initialize do
   require_relative "lib/discourse_itinerary/itinerary"
   require_relative "lib/discourse_itinerary/trip_finder"
   require_relative "lib/discourse_itinerary/trip_item_finder"
+  require_relative "lib/discourse_itinerary/category_provisioner"
   require_relative "app/serializers/trip_serializer"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
+
+  # Provision the dedicated itinerary category on first boot. Idempotent:
+  # if the setting already points at a category, this is a no-op.
+  begin
+    DiscourseItinerary::CategoryProvisioner.ensure_category!
+  rescue => e
+    Rails.logger.warn("discourse-itinerary: failed to provision default category: #{e.message}")
+  end
 
   Discourse::Application.routes.append do
     get "/itinerary/trips" => "itinerary#index",

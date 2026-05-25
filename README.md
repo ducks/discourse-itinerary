@@ -3,10 +3,10 @@
 A Discourse plugin that turns a category of topics into a chronological
 travel itinerary, with one trip per topic and its items linked back to it.
 
-Topics carrying the `itinerary` tag and a set of itinerary custom fields are
-collected, grouped under their parent trip, sorted by start time, and
-returned via plugin routes. Ember pages render the list of trips and the
-per-trip timeline grouped by day.
+Topics in the configured itinerary category that carry a set of itinerary
+custom fields are collected, grouped under their parent trip, sorted by
+start time, and returned via plugin routes. Ember pages render the list
+of trips and the per-trip timeline grouped by day.
 
 This is an early, narrow tool. It is not a generic notes app, calendar, or
 project planner. It just makes a category of Discourse topics readable as a
@@ -14,11 +14,13 @@ travel timeline.
 
 ## How it works
 
-- **Category** = container for many trips
+- **Category** = container for many trips. The plugin auto-creates an
+  "Itinerary" category on first boot and stores its id in the
+  `itinerary_category_id` site setting; admins can repoint that setting
+  at a different category if they want.
 - **Topic with `itinerary_item_type = trip`** = the trip workspace
 - **Other itinerary topics** = items (flight, hotel, train, event, transfer,
   note) that point at their parent trip via `itinerary_parent_trip_id`
-- **Tag** `itinerary` = marker that a topic should appear in the timeline
 - **Topic custom fields** = structured metadata
 - **Plugin routes**: `GET /itinerary/trips` (list trips, optionally
   filtered by `category_id`), `GET /itinerary/trips/:id` (one trip
@@ -49,6 +51,7 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
 - **v0.2** — composer extension for authoring itinerary topics
 - **v0.3** - team-trip data model (one category, many trips), split
   finders, trip + item JSON routes, Ember route and timeline rendering
+- **v0.4** - auto-create dedicated category; drop tag requirement
 - **later** — filters, status tracking, icons per type
 
 No ICS export, calendar sync, email parsing, or map view. Not planned for the
@@ -57,12 +60,14 @@ near term.
 ## Site settings
 
 - `itinerary_enabled` (default: true) — kill switch for the plugin
+- `itinerary_category_id` (default: -1) - id of the category the plugin
+  treats as the itinerary workspace. Auto-set on first boot when the
+  plugin provisions its default category; can be repointed in admin.
 
 ## Requirements
 
-- Discourse with tagging enabled (`SiteSetting.tagging_enabled = true`)
-- A tag named `itinerary` (auto-created by the plugin if missing on first use,
-  or created manually in Admin → Tags)
+- A Discourse category to hold itinerary topics. The plugin creates one
+  automatically on first boot if `itinerary_category_id` is unset.
 
 ## Local development
 
