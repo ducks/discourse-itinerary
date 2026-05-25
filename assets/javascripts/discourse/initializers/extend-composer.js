@@ -18,7 +18,7 @@ export default {
   name: "discourse-itinerary-composer",
 
   initialize() {
-    withPluginApi("1.13.0", (api) => {
+    withPluginApi((api) => {
       // Register every itinerary field on the composer model.
       // serializeOnCreate -> sent on POST /posts (new topic).
       // serializeToTopic  -> sent on PUT /t/<id>  (edit existing topic).
