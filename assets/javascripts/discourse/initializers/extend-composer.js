@@ -5,6 +5,7 @@ import { withPluginApi } from "discourse/lib/plugin-api";
 // on the Ruby side.
 const ITINERARY_FIELDS = [
   "itinerary_item_type",
+  "itinerary_parent_trip_id",
   "itinerary_starts_at",
   "itinerary_ends_at",
   "itinerary_origin",
