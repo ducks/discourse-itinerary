@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-describe ItineraryController do
+describe ItineraryController, type: :request do
   fab!(:user)
   fab!(:category)
   fab!(:tag) { Fabricate(:tag, name: DiscourseItinerary::ITINERARY_TAG) }

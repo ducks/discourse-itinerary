@@ -12,7 +12,7 @@ describe "Itinerary authoring" do
   before do
     SiteSetting.itinerary_enabled = true
     SiteSetting.tagging_enabled = true
-    SiteSetting.min_trust_level_to_tag_topics = 0
+    SiteSetting.tag_topic_allowed_groups = Group::AUTO_GROUPS[:everyone]
   end
 
   it "saves itinerary custom fields on topic creation" do
