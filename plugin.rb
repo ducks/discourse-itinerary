@@ -8,10 +8,10 @@
 
 enabled_site_setting :itinerary_enabled
 
-register_asset 'stylesheets/itinerary.scss'
+register_asset "stylesheets/itinerary.scss"
 
 module ::DiscourseItinerary
-  PLUGIN_NAME = 'discourse-itinerary'
+  PLUGIN_NAME = "discourse-itinerary"
 
   # Topic custom field keys. Stored as strings on Discourse's
   # topic_custom_fields table.
@@ -29,22 +29,24 @@ module ::DiscourseItinerary
   # The tag that marks a topic as an itinerary item. Lives in the
   # standard Discourse tag system so existing UI for tag management
   # applies to it.
-  ITINERARY_TAG = 'itinerary'
+  ITINERARY_TAG = "itinerary"
 end
 
-DiscourseItinerary::CUSTOM_FIELDS.each do |field|
-  register_topic_custom_field_type(field, :string)
-end
+DiscourseItinerary::CUSTOM_FIELDS.each { |field| register_topic_custom_field_type(field, :string) }
 
 after_initialize do
-  require_relative 'lib/discourse_itinerary/itinerary_finder'
-  require_relative 'app/serializers/itinerary_item_serializer'
-  require_relative 'app/controllers/itinerary_controller'
+  require_relative "lib/discourse_itinerary/itinerary_finder"
+  require_relative "app/serializers/itinerary_item_serializer"
+  require_relative "app/controllers/itinerary_controller"
 
   Discourse::Application.routes.append do
-    get '/itinerary/:category_slug' => 'itinerary#show',
-        defaults: { format: :json },
-        constraints: { format: :json }
+    get "/itinerary/:category_slug" => "itinerary#show",
+        :defaults => {
+          format: :json,
+        },
+        :constraints => {
+          format: :json,
+        }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----
@@ -85,8 +87,6 @@ after_initialize do
   # Expose itinerary fields on the standard topic serializer so the
   # composer can preload them when editing an existing topic.
   DiscourseItinerary::CUSTOM_FIELDS.each do |field|
-    add_to_serializer(:topic_view, field.to_sym) do
-      object.topic.custom_fields[field]
-    end
+    add_to_serializer(:topic_view, field.to_sym) { object.topic.custom_fields[field] }
   end
 end

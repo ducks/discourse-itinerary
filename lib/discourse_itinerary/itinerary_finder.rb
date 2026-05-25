@@ -21,14 +21,15 @@ module DiscourseItinerary
       Topic
         .secured(@guardian)
         .where(category_id: @category.id)
-        .joins(:tags).where(tags: { name: DiscourseItinerary::ITINERARY_TAG })
+        .joins(:tags)
+        .where(tags: { name: DiscourseItinerary::ITINERARY_TAG })
         .joins(
           "INNER JOIN topic_custom_fields starts " \
-          "ON starts.topic_id = topics.id " \
-          "AND starts.name = 'itinerary_starts_at'"
+            "ON starts.topic_id = topics.id " \
+            "AND starts.name = 'itinerary_starts_at'",
         )
         .where("starts.value IS NOT NULL AND starts.value <> ''")
-        .order('starts.value ASC')
+        .order("starts.value ASC")
         .includes(:_custom_fields)
         .to_a
     end

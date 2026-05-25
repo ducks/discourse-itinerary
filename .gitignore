@@ -4,3 +4,4 @@ node_modules/
 tmp/
 Gemfile.lock
 vendor/bundle/
+.gems/
