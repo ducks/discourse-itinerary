@@ -75,6 +75,8 @@ after_initialize do
   end
 
   require_relative "lib/discourse_itinerary/itinerary"
+  require_relative "lib/discourse_itinerary/trip_finder"
+  require_relative "lib/discourse_itinerary/trip_item_finder"
   require_relative "lib/discourse_itinerary/itinerary_finder"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
