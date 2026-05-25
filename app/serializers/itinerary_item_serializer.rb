@@ -18,14 +18,30 @@ class ItineraryItemSerializer < ApplicationSerializer
     "/t/#{object.slug}/#{object.id}"
   end
 
-  def item_type; cf('itinerary_item_type'); end
-  def starts_at; cf('itinerary_starts_at'); end
-  def ends_at; cf('itinerary_ends_at'); end
-  def origin; cf('itinerary_origin'); end
-  def destination; cf('itinerary_destination'); end
-  def location; cf('itinerary_location'); end
-  def confirmation_code; cf('itinerary_confirmation_code'); end
-  def status; cf('itinerary_status'); end
+  def item_type
+    cf("itinerary_item_type")
+  end
+  def starts_at
+    cf("itinerary_starts_at")
+  end
+  def ends_at
+    cf("itinerary_ends_at")
+  end
+  def origin
+    cf("itinerary_origin")
+  end
+  def destination
+    cf("itinerary_destination")
+  end
+  def location
+    cf("itinerary_location")
+  end
+  def confirmation_code
+    cf("itinerary_confirmation_code")
+  end
+  def status
+    cf("itinerary_status")
+  end
 
   private
 

@@ -9,20 +9,15 @@ class ::ItineraryController < ::ApplicationController
 
     guardian.ensure_can_see!(category)
 
-    items = DiscourseItinerary::ItineraryFinder.new(
-      category: category,
-      guardian: guardian
-    ).call
+    items = DiscourseItinerary::ItineraryFinder.new(category: category, guardian: guardian).call
 
     render_json_dump(
       category: {
         id: category.id,
         name: category.name,
-        slug: category.slug
+        slug: category.slug,
       },
-      items: items.map { |t|
-        ItineraryItemSerializer.new(t, scope: guardian, root: false).as_json
-      }
+      items: items.map { |t| ItineraryItemSerializer.new(t, scope: guardian, root: false).as_json },
     )
   end
 end
