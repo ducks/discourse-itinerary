@@ -17,7 +17,9 @@ travel timeline.
 - **Topic** = itinerary item (flight, hotel, train, event, transfer, note)
 - **Tag** `itinerary` = marker that a topic should appear in the timeline
 - **Topic custom fields** = structured metadata
-- **Plugin route** `/itinerary/:category_slug` = the rendered timeline
+- **Plugin routes**: `GET /itinerary/trips` (list trips, optionally
+  filtered by `category_id`), `GET /itinerary/trips/:id` (one trip
+  with its items)
 
 ### Custom fields
 

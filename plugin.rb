@@ -77,17 +77,25 @@ after_initialize do
   require_relative "lib/discourse_itinerary/itinerary"
   require_relative "lib/discourse_itinerary/trip_finder"
   require_relative "lib/discourse_itinerary/trip_item_finder"
-  require_relative "lib/discourse_itinerary/itinerary_finder"
+  require_relative "app/serializers/trip_serializer"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
 
   Discourse::Application.routes.append do
-    get "/itinerary/:category_slug" => "itinerary#show",
+    get "/itinerary/trips" => "itinerary#index",
         :defaults => {
           format: :json,
         },
         :constraints => {
           format: :json,
+        }
+    get "/itinerary/trips/:id" => "itinerary#show",
+        :defaults => {
+          format: :json,
+        },
+        :constraints => {
+          format: :json,
+          id: /\d+/,
         }
   end
 
