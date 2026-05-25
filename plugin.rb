@@ -65,15 +65,21 @@ after_initialize do
   end
 
   # Save on first creation too: when a topic is created, copy any
-  # itinerary_* params off the controller's permitted params onto the
-  # newly-created topic's custom_fields.
-  on(:topic_created) do |topic, opts, user|
-    DiscourseItinerary::CUSTOM_FIELDS.each do |field|
-      if opts.key?(field.to_sym) || opts.key?(field)
-        topic.custom_fields[field] = (opts[field.to_sym] || opts[field]).presence
-      end
-    end
-    topic.save_custom_fields if topic.custom_fields_clean?.is_a?(FalseClass) || topic.custom_fields.any?
+  # itinerary_* params off the opts hash onto the newly-created topic's
+  # custom_fields.
+  #
+  # `opts` from PostCreator is a plain Hash with symbol keys when
+  # callers use kwarg-style, but Email::Receiver passes a different
+  # shape; normalize via HashWithIndifferentAccess so we check once.
+  # Only save if at least one itinerary field was provided, otherwise
+  # we'd write empty custom_fields for every new topic.
+  on(:topic_created) do |topic, opts, _user|
+    indifferent = opts.with_indifferent_access
+    provided = DiscourseItinerary::CUSTOM_FIELDS.select { |f| indifferent.key?(f) }
+    next if provided.empty?
+
+    provided.each { |field| topic.custom_fields[field] = indifferent[field].presence }
+    topic.save_custom_fields
   end
 
   # Expose itinerary fields on the standard topic serializer so the

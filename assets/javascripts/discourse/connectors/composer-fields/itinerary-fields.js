@@ -1,5 +1,4 @@
 // Connector backing the itinerary-fields template. It exposes:
-//   - shouldShow:  whether to render the panel for the current composer
 //   - composer:    a passthrough handle to the composer model
 //   - setX/setY:   actions that write each field back to the composer
 //
@@ -7,11 +6,15 @@
 // plugin-outlet contract. We just proxy fields through.
 
 export default {
+  // Only render for new topics or first-post edits — never for replies,
+  // PMs, or other composer actions. Itinerary metadata is topic-scoped,
+  // so editing a reply shouldn't expose it. Per-category gating (only
+  // show in itinerary-enabled categories) is a future refinement that
+  // probably needs a category custom field to drive it.
   shouldRender(args) {
-    // Render the panel when the composer is open. A future refinement
-    // is to only render when the target category is itinerary-enabled
-    // (via a category custom field or a site setting per category).
-    return !!args.model;
+    const composer = args.model;
+    if (!composer) return false;
+    return composer.creatingTopic || composer.editingFirstPost;
   },
 
   setupComponent(args, component) {
