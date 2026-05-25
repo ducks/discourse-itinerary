@@ -73,29 +73,12 @@ module DiscourseItinerary
     end
 
     # The non-trip topics that point at this trip via
-    # `itinerary_parent_trip_id`, sorted by their `itinerary_starts_at`
-    # value (lexical sort on ISO-8601 strings — correct for the format
-    # the composer writes).
+    # `itinerary_parent_trip_id`, sorted by `itinerary_starts_at`.
+    # Delegates to TripItemFinder; this wrapper exists so callers can
+    # keep writing `itinerary.items` without knowing there's a finder
+    # behind it.
     def items
-      Topic
-        .secured(@guardian)
-        .joins(:tags)
-        .where(tags: { name: DiscourseItinerary::ITINERARY_TAG })
-        .joins(
-          "INNER JOIN topic_custom_fields parent " \
-            "ON parent.topic_id = topics.id " \
-            "AND parent.name = 'itinerary_parent_trip_id'",
-        )
-        .where("parent.value = ?", id.to_s)
-        .joins(
-          "INNER JOIN topic_custom_fields starts " \
-            "ON starts.topic_id = topics.id " \
-            "AND starts.name = 'itinerary_starts_at'",
-        )
-        .where("starts.value IS NOT NULL AND starts.value <> ''")
-        .order("starts.value ASC")
-        .includes(:_custom_fields)
-        .to_a
+      DiscourseItinerary::TripItemFinder.new(trip: @topic, guardian: @guardian).call
     end
 
     private
