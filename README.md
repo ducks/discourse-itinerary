@@ -1,11 +1,12 @@
 # discourse-itinerary
 
-A Discourse plugin that renders topics in a category as a chronological travel
-itinerary.
+A Discourse plugin that turns a category of topics into a chronological
+travel itinerary, with one trip per topic and its items linked back to it.
 
 Topics carrying the `itinerary` tag and a set of itinerary custom fields are
-collected, sorted by start time, and returned via a plugin route. A simple
-Ember page renders them grouped by day.
+collected, grouped under their parent trip, sorted by start time, and
+returned via plugin routes. Ember pages render the list of trips and the
+per-trip timeline grouped by day.
 
 This is an early, narrow tool. It is not a generic notes app, calendar, or
 project planner. It just makes a category of Discourse topics readable as a
@@ -13,13 +14,16 @@ travel timeline.
 
 ## How it works
 
-- **Category** = trip workspace
-- **Topic** = itinerary item (flight, hotel, train, event, transfer, note)
+- **Category** = container for many trips
+- **Topic with `itinerary_item_type = trip`** = the trip workspace
+- **Other itinerary topics** = items (flight, hotel, train, event, transfer,
+  note) that point at their parent trip via `itinerary_parent_trip_id`
 - **Tag** `itinerary` = marker that a topic should appear in the timeline
 - **Topic custom fields** = structured metadata
 - **Plugin routes**: `GET /itinerary/trips` (list trips, optionally
   filtered by `category_id`), `GET /itinerary/trips/:id` (one trip
-  with its items)
+  with its items, day-grouped on the client)
+- **Pages**: `/itinerary` (trip list) and `/itinerary/:trip_id` (timeline)
 
 ### Custom fields
 
@@ -43,7 +47,8 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
 
 - **v0.1** — JSON route + Rails-side query
 - **v0.2** — composer extension for authoring itinerary topics
-- **v0.3** — Ember route and timeline rendering
+- **v0.3** - team-trip data model (one category, many trips), split
+  finders, trip + item JSON routes, Ember route and timeline rendering
 - **later** — filters, status tracking, icons per type
 
 No ICS export, calendar sync, email parsing, or map view. Not planned for the

@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.2.0
+# version: 0.3.0
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
