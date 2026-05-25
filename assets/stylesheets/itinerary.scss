@@ -32,3 +32,163 @@
     }
   }
 }
+
+// /itinerary and /itinerary/:trip_id pages.
+.itinerary-page {
+  padding: 1rem 0;
+}
+
+// Trip list (the /itinerary index)
+.itinerary-trip-list {
+  h2 {
+    margin: 0 0 1rem;
+  }
+}
+
+.itinerary-trips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    margin-bottom: 0.5rem;
+  }
+
+  &__link {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.75rem;
+    align-items: baseline;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--primary-low);
+    border-radius: 4px;
+    text-decoration: none;
+    color: inherit;
+
+    &:hover {
+      background: var(--primary-very-low);
+    }
+  }
+
+  &__title {
+    font-weight: 600;
+  }
+
+  &__dates {
+    color: var(--primary-medium);
+    font-size: 0.9em;
+  }
+
+  &__location {
+    color: var(--primary-medium);
+    font-size: 0.9em;
+  }
+
+  &__empty {
+    color: var(--primary-medium);
+    font-style: italic;
+  }
+}
+
+// Single trip timeline
+.itinerary-trip {
+  &__header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--primary-low);
+  }
+
+  &__title {
+    margin: 0 0 0.25rem;
+  }
+
+  &__meta {
+    color: var(--primary-medium);
+    font-size: 0.9em;
+    display: flex;
+    gap: 1rem;
+  }
+
+  &__days {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__empty {
+    color: var(--primary-medium);
+    font-style: italic;
+  }
+}
+
+.itinerary-day {
+  margin-bottom: 1.5rem;
+
+  &__heading {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    color: var(--primary);
+    border-bottom: 1px dashed var(--primary-low);
+    padding-bottom: 0.25rem;
+  }
+
+  &__items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.itinerary-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.4rem 0;
+
+  & + & {
+    border-top: 1px dotted var(--primary-low);
+  }
+
+  &__time {
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-medium);
+    font-size: 0.85em;
+  }
+
+  &__type {
+    text-transform: uppercase;
+    font-size: 0.75em;
+    color: var(--primary-medium);
+    letter-spacing: 0.04em;
+  }
+
+  &__title {
+    font-weight: 500;
+  }
+
+  &__route,
+  &__location {
+    color: var(--primary-medium);
+    font-size: 0.9em;
+  }
+
+  &__status {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: var(--primary-low);
+    color: var(--primary);
+
+    &--booked {
+      background: var(--success-low);
+      color: var(--success);
+    }
+
+    &--completed {
+      background: var(--primary-low);
+      color: var(--primary-medium);
+    }
+  }
+}
