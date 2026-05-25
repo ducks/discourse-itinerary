@@ -3,6 +3,16 @@
 class ::ItineraryController < ::ApplicationController
   requires_plugin DiscourseItinerary::PLUGIN_NAME
 
+  # GET /itinerary  and  GET /itinerary/:trip_id  (HTML)
+  #
+  # Serves Discourse's app shell so the Ember client can take over and
+  # resolve the path via the plugin's route map. The JSON action below
+  # is what actually returns trip data; this action just renders the
+  # SPA layout.
+  def page
+    render "default/empty"
+  end
+
   # GET /itinerary/trips(.json)
   #
   # Lists every trip the user can see, sorted by start date.

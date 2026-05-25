@@ -82,6 +82,7 @@ after_initialize do
     register_topic_custom_field_type(field, type)
   end
 
+  require_relative "lib/discourse_itinerary/engine"
   require_relative "lib/discourse_itinerary/itinerary"
   require_relative "lib/discourse_itinerary/trip_finder"
   require_relative "lib/discourse_itinerary/trip_item_finder"
@@ -114,6 +115,14 @@ after_initialize do
           format: :json,
           id: /\d+/,
         }
+
+    # HTML entrypoints for the Ember client routes. Rails matches the
+    # URL and returns Discourse's app shell; Ember then takes over and
+    # the route map (assets/.../discourse-itinerary-route-map.js)
+    # resolves the path client-side. Without these, Rails 404s before
+    # the bootstrap HTML reaches the browser.
+    get "/itinerary" => "itinerary#page", :constraints => { format: :html }
+    get "/itinerary/*path" => "itinerary#page", :constraints => { format: :html }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----

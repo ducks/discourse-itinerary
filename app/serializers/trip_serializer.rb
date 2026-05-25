@@ -6,6 +6,8 @@
 class TripSerializer < ApplicationSerializer
   attributes :id, :title, :slug, :url, :starts_at, :ends_at, :location, :category_id
 
+  has_one :creator, serializer: BasicUserSerializer, embed: :object
+
   def id
     object.id
   end
@@ -36,5 +38,13 @@ class TripSerializer < ApplicationSerializer
 
   def category_id
     object.category&.id
+  end
+
+  def creator
+    object.creator
+  end
+
+  def include_creator?
+    object.creator.present?
   end
 end

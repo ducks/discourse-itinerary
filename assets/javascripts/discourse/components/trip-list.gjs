@@ -1,5 +1,6 @@
 import Component from "@glimmer/component";
 import { LinkTo } from "@ember/routing";
+import avatar from "discourse/helpers/avatar";
 import { shortDate } from "discourse/lib/formatter";
 
 // Renders the /itinerary index: a flat chronological list of trips
@@ -20,6 +21,12 @@ export default class TripList extends Component {
             <li class="itinerary-trips__item">
               <LinkTo @route="itinerary.show" @model={{trip.id}} class="itinerary-trips__link">
                 <span class="itinerary-trips__title">{{trip.title}}</span>
+                {{#if trip.creator}}
+                  <span class="itinerary-trips__creator">
+                    {{avatar trip.creator imageSize="small"}}
+                    <span class="itinerary-trips__creator-name">{{trip.creator.username}}</span>
+                  </span>
+                {{/if}}
                 <span class="itinerary-trips__dates">
                   {{this.formatDate trip.starts_at}}
                   {{#if trip.ends_at}}
