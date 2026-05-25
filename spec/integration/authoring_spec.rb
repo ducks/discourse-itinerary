@@ -57,4 +57,53 @@ describe "Itinerary authoring" do
     expect(topic.custom_fields["itinerary_confirmation_code"]).to eq("ABC123")
     expect(topic.custom_fields["itinerary_item_type"]).to eq("flight")
   end
+
+  it "saves trip topics with itinerary_item_type: 'trip'" do
+    creator =
+      PostCreator.new(
+        user,
+        title: "Engineering Madrid 2026",
+        raw: "Trip workspace.",
+        category: category.id,
+        tags: [DiscourseItinerary::ITINERARY_TAG],
+        itinerary_item_type: "trip",
+        itinerary_starts_at: "2026-09-20",
+        itinerary_ends_at: "2026-09-25",
+        itinerary_location: "Madrid, Spain",
+      )
+    post = creator.create
+    expect(creator.errors.full_messages).to be_empty
+    expect(post.topic.custom_fields["itinerary_item_type"]).to eq("trip")
+    expect(post.topic.custom_fields["itinerary_location"]).to eq("Madrid, Spain")
+  end
+
+  it "saves items with itinerary_parent_trip_id linking back to a trip" do
+    creator =
+      PostCreator.new(
+        user,
+        title: "Flight PDX to MAD",
+        raw: "Linked to a trip.",
+        category: category.id,
+        tags: [DiscourseItinerary::ITINERARY_TAG],
+        itinerary_item_type: "flight",
+        itinerary_parent_trip_id: 42,
+      )
+    post = creator.create
+    expect(creator.errors.full_messages).to be_empty
+    # Custom fields registered as :integer come back as Integer on read
+    expect(post.topic.custom_fields["itinerary_parent_trip_id"]).to eq(42)
+  end
+
+  it "rejects unknown itinerary_item_type values" do
+    expect {
+      PostCreator.new(
+        user,
+        title: "Bogus",
+        raw: "Should not save.",
+        category: category.id,
+        tags: [DiscourseItinerary::ITINERARY_TAG],
+        itinerary_item_type: "spaceflight",
+      ).create
+    }.to raise_error(Discourse::InvalidParameters, /spaceflight/)
+  end
 end

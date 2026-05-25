@@ -6,6 +6,7 @@ class ItineraryItemSerializer < ApplicationSerializer
              :slug,
              :url,
              :item_type,
+             :parent_trip_id,
              :starts_at,
              :ends_at,
              :origin,
@@ -20,6 +21,9 @@ class ItineraryItemSerializer < ApplicationSerializer
 
   def item_type
     cf("itinerary_item_type")
+  end
+  def parent_trip_id
+    cf("itinerary_parent_trip_id")&.to_i
   end
   def starts_at
     cf("itinerary_starts_at")
