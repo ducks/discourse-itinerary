@@ -1,0 +1,22 @@
+name: Screenshots
+
+# Captures screenshots of the plugin's pages and publishes them to
+# GitHub Pages. Delegates the heavy lifting to a reusable workflow
+# in discourse-plugin-screenshots, which runs inside Discourse's
+# official test container.
+#
+# What gets captured comes from config/screenshots.yml in this repo.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  screenshots:
+    uses: ducks/discourse-plugin-screenshots/.github/workflows/plugin-screenshots.yml@main
