@@ -44,11 +44,35 @@ export default class ItineraryFields extends Component {
   @tracked itemType;
   @tracked availableTrips = [];
   @tracked tripsLoaded = false;
+  lastSynthesizedBody = "";
 
   constructor() {
     super(...arguments);
     this.itemType = this.composer.itinerary_item_type;
     this.loadTrips();
+    this.syncBodyClass();
+  }
+
+  // Adds a body class when the composer is in the itinerary category
+  // AND the user is authoring an item (not a trip). SCSS hides the
+  // standard title input under that class since we synthesize the
+  // title from itinerary fields. Trips keep the title input visible
+  // because the user names a trip meaningfully ("European trip 2026"
+  // etc.). The class is removed in willDestroy when the composer
+  // closes; we also re-sync on every setItemType so swapping between
+  // trip and non-trip toggles the title visibility.
+  syncBodyClass() {
+    const shouldHide = this.inItineraryCategory && this.itemType && this.itemType !== "trip";
+    if (shouldHide) {
+      document.body.classList.add("composer-itinerary-item-mode");
+    } else {
+      document.body.classList.remove("composer-itinerary-item-mode");
+    }
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    document.body.classList.remove("composer-itinerary-item-mode");
   }
 
   get composer() {
@@ -122,6 +146,79 @@ export default class ItineraryFields extends Component {
     }
   }
 
+  // Synthesizes the topic title from the itinerary fields. Trip
+  // topics keep whatever title the user typed (e.g. "European trip
+  // 2026"); items get a deterministic title built from their fields,
+  // so the user doesn't have to type one. Format:
+  //
+  //   Flight: PDX -> MAD
+  //   Hotel: Madrid Marriott
+  //   Event: Symphony
+  //   Note
+  //
+  // For routes that haven't been filled in yet, falls back to the
+  // bare type word so the title is never empty.
+  synthesizeTitle() {
+    const type = this.itemType;
+    if (!type || type === "trip") {
+      return;
+    }
+
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    const origin = this.composer.itinerary_origin;
+    const destination = this.composer.itinerary_destination;
+    const location = this.composer.itinerary_location;
+
+    let title = cap(type);
+    if (["flight", "train", "transfer"].includes(type) && (origin || destination)) {
+      title = `${cap(type)}: ${origin || "?"} -> ${destination || "?"}`;
+    } else if (location) {
+      title = `${cap(type)}: ${location}`;
+    }
+
+    this.composer.set("title", title);
+    this.syncRawBody();
+  }
+
+  // Auto-fills the composer's raw body with a rendered summary of all
+  // itinerary fields so it (a) easily clears min_first_post_length
+  // and (b) gives the user something to skim and add notes to. We
+  // only set the body if the user hasn't typed anything custom, so
+  // we don't clobber their edits.
+  syncRawBody() {
+    const current = (this.composer.reply || "").trim();
+    if (current && current !== this.lastSynthesizedBody) {
+      // User typed their own; don't overwrite.
+      return;
+    }
+
+    const lines = [];
+    const push = (label, value) => {
+      if (value) {
+        lines.push(`- ${label}: ${value}`);
+      }
+    };
+
+    push("Starts", this.composer.itinerary_starts_at);
+    push("Ends", this.composer.itinerary_ends_at);
+    if (this.composer.itinerary_origin || this.composer.itinerary_destination) {
+      push(
+        "Route",
+        [this.composer.itinerary_origin, this.composer.itinerary_destination]
+          .filter(Boolean)
+          .join(" -> "),
+      );
+    }
+    push("Location", this.composer.itinerary_location);
+    push("Confirmation", this.composer.itinerary_confirmation_code);
+    push("Status", this.composer.itinerary_status);
+
+    const body = lines.length ? lines.join("\n") : "";
+    this.lastSynthesizedBody = body;
+    this.composer.set("reply", body);
+  }
+
   @action
   setItemType(e) {
     const newType = e.target.value || null;
@@ -133,6 +230,8 @@ export default class ItineraryFields extends Component {
     if (newType === "trip" || newType === null) {
       this.composer.set("itinerary_parent_trip_id", null);
     }
+    this.syncBodyClass();
+    this.synthesizeTitle();
   }
 
   @action
@@ -144,6 +243,7 @@ export default class ItineraryFields extends Component {
   @action
   setStatus(e) {
     this.composer.set("itinerary_status", e.target.value || null);
+    this.syncRawBody();
   }
 
   // Stored format is "YYYY-MM-DD" (date-only) or "YYYY-MM-DDTHH:MM"
@@ -181,6 +281,7 @@ export default class ItineraryFields extends Component {
       "itinerary_starts_at",
       this.combineDateTime(e.target.value, this.startsAtTime),
     );
+    this.syncRawBody();
   }
 
   @action
@@ -189,6 +290,7 @@ export default class ItineraryFields extends Component {
       "itinerary_starts_at",
       this.combineDateTime(this.startsAtDate, e.target.value),
     );
+    this.syncRawBody();
   }
 
   @action
@@ -197,6 +299,7 @@ export default class ItineraryFields extends Component {
       "itinerary_ends_at",
       this.combineDateTime(e.target.value, this.endsAtTime),
     );
+    this.syncRawBody();
   }
 
   @action
@@ -205,26 +308,31 @@ export default class ItineraryFields extends Component {
       "itinerary_ends_at",
       this.combineDateTime(this.endsAtDate, e.target.value),
     );
+    this.syncRawBody();
   }
 
   @action
   setOrigin(e) {
     this.composer.set("itinerary_origin", e.target.value || null);
+    this.synthesizeTitle();
   }
 
   @action
   setDestination(e) {
     this.composer.set("itinerary_destination", e.target.value || null);
+    this.synthesizeTitle();
   }
 
   @action
   setLocation(e) {
     this.composer.set("itinerary_location", e.target.value || null);
+    this.synthesizeTitle();
   }
 
   @action
   setConfirmationCode(e) {
     this.composer.set("itinerary_confirmation_code", e.target.value || null);
+    this.syncRawBody();
   }
 
   <template>

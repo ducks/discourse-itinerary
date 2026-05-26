@@ -56,6 +56,9 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
   plugin owns the UX; /itinerary is the canonical entrypoint, with
   a sidebar link under the Community section and +Add buttons on
   both the trip list and per-trip timeline pages
+- **v0.6** - auto-synthesize topic title and body from itinerary
+  fields. Hide the bare title input; pre-fill the body. Item topics
+  no longer require the user to invent a title.
 - **later** — filters, status tracking, drag-reorder
 
 No ICS export, calendar sync, email parsing, or map view. Not planned for the
