@@ -1,5 +1,8 @@
 import Component from "@glimmer/component";
+import { on } from "@ember/modifier";
+import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
+import { service } from "@ember/service";
 import avatar from "discourse/helpers/avatar";
 import { shortDate } from "discourse/lib/formatter";
 
@@ -9,11 +12,39 @@ import { shortDate } from "discourse/lib/formatter";
 // for normal items but not for trip topics) sort to the end and
 // render with a "no date" placeholder.
 export default class TripList extends Component {
+  @service composer;
+  @service site;
+  @service siteSettings;
+
   formatDate = (iso) => (iso ? shortDate(new Date(iso)) : "-");
+
+  // Opens the standard composer pre-scoped to the itinerary category
+  // and seeds the trip item-type so the composer panel hides the
+  // item-only fields. The connector reads itinerary_item_type off the
+  // composer model.
+  @action
+  async addTrip() {
+    const categoryId = Number(this.siteSettings.itinerary_category_id);
+    const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
+
+    await this.composer.openNewTopic({ category });
+    if (this.composer.model) {
+      this.composer.model.set("itinerary_item_type", "trip");
+    }
+  }
 
   <template>
     <div class="itinerary-trip-list">
-      <h2>Trips</h2>
+      <div class="itinerary-trip-list__header">
+        <h2>Trips</h2>
+        <button
+          type="button"
+          class="btn btn-primary itinerary-trip-list__add"
+          {{on "click" this.addTrip}}
+        >
+          + Add trip
+        </button>
+      </div>
 
       {{#if @trips.length}}
         <ul class="itinerary-trips">
