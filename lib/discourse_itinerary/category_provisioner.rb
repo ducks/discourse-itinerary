@@ -21,6 +21,7 @@ module DiscourseItinerary
       category = find_existing || create_new!
 
       SiteSetting.itinerary_category_id = category.id
+      mute_by_default!(category)
       category
     end
 
@@ -36,6 +37,17 @@ module DiscourseItinerary
         color: "0088CC",
         text_color: "FFFFFF",
       )
+    end
+
+    # Add the category id to default_categories_muted so new users
+    # don't see itinerary topics on /latest. Existing users keep their
+    # current preference. The list is a pipe-delimited string of ids
+    # in Discourse's site-settings layer.
+    def self.mute_by_default!(category)
+      current = SiteSetting.default_categories_muted.to_s.split("|").reject(&:empty?)
+      return if current.include?(category.id.to_s)
+
+      SiteSetting.default_categories_muted = (current + [category.id.to_s]).join("|")
     end
   end
 end
