@@ -1,4 +1,7 @@
 import Component from "@glimmer/component";
+import { on } from "@ember/modifier";
+import { action } from "@ember/object";
+import { service } from "@ember/service";
 import avatar from "discourse/helpers/avatar";
 import { shortDate } from "discourse/lib/formatter";
 
@@ -10,6 +13,23 @@ import { shortDate } from "discourse/lib/formatter";
 // Items without a starts_at value never reach here (TripItemFinder
 // filters them out), so we can assume every item has a date.
 export default class TripTimeline extends Component {
+  @service composer;
+  @service site;
+  @service siteSettings;
+
+  // Opens the composer with the itinerary category and seeds the
+  // parent-trip id so a new item lands under this trip. Item-type
+  // defaults blank; user picks flight/hotel/etc. in the composer.
+  @action
+  async addLeg() {
+    const categoryId = Number(this.siteSettings.itinerary_category_id);
+    const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
+
+    await this.composer.openNewTopic({ category });
+    if (this.composer.model && this.args.trip?.id) {
+      this.composer.model.set("itinerary_parent_trip_id", this.args.trip.id);
+    }
+  }
   // Returns [{ date: "2026-09-20", label: "Sep 20", items: [...] }, ...]
   // ordered by date ascending. Pre-sorted server-side, so we just
   // partition without re-sorting.
@@ -44,7 +64,16 @@ export default class TripTimeline extends Component {
   <template>
     <div class="itinerary-trip">
       <header class="itinerary-trip__header">
-        <h2 class="itinerary-trip__title">{{@trip.title}}</h2>
+        <div class="itinerary-trip__title-row">
+          <h2 class="itinerary-trip__title">{{@trip.title}}</h2>
+          <button
+            type="button"
+            class="btn btn-primary itinerary-trip__add"
+            {{on "click" this.addLeg}}
+          >
+            + Add leg
+          </button>
+        </div>
         <div class="itinerary-trip__meta">
           {{#if @trip.creator}}
             <span class="itinerary-trip__creator">
