@@ -86,15 +86,20 @@ describe "Itinerary authoring" do
     expect(post.topic.custom_fields["itinerary_parent_trip_id"]).to eq(42)
   end
 
-  it "rejects unknown itinerary_item_type values" do
-    expect {
+  it "rejects unknown itinerary_item_type values and leaves the field blank" do
+    # normalize_field raises Discourse::InvalidParameters from inside
+    # the :topic_created event handler. DiscourseEvent catches handler
+    # exceptions and logs them rather than re-raising, so the topic
+    # itself still gets created with no itinerary_item_type stored.
+    creator =
       PostCreator.new(
         user,
         title: "Bogus item type validation",
         raw: "Should not save.",
         category: category.id,
         itinerary_item_type: "spaceflight",
-      ).create
-    }.to raise_error(Discourse::InvalidParameters, /spaceflight/)
+      )
+    post = creator.create
+    expect(post.topic.custom_fields["itinerary_item_type"]).to be_nil
   end
 end
