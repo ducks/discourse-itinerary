@@ -10,6 +10,7 @@ const ITINERARY_FIELDS = [
   "itinerary_ends_at",
   "itinerary_origin",
   "itinerary_destination",
+  "itinerary_name",
   "itinerary_location",
   "itinerary_confirmation_code",
   "itinerary_status",

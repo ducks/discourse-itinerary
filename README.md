@@ -39,6 +39,7 @@ Each itinerary topic stores these fields on the standard topic
 | `itinerary_ends_at`            | string   | `2026-09-21T09:15`      |
 | `itinerary_origin`             | string   | `PDX`                   |
 | `itinerary_destination`        | string   | `MAD`                   |
+| `itinerary_name`               | string   | `Memmo Alfama`          |
 | `itinerary_location`           | string   | `Artrip, Madrid`        |
 | `itinerary_confirmation_code`  | string   | `ABC123`                |
 | `itinerary_status`             | string   | `booked`                |
