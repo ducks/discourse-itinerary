@@ -1,3 +1,19 @@
+// When the composer is authoring a non-trip itinerary item, the
+// plugin synthesizes the title from the structured fields, so the
+// bare title input would just confuse users (they'd type something,
+// then see it overwritten on each field change). Hide it; the post
+// body textarea still works as a notes field.
+//
+// Trips keep the title input visible because users name trips
+// meaningfully ("European trip 2026"), unlike items where the
+// title is fully derivable from origin/destination/location.
+body.composer-itinerary-item-mode {
+  .title-input,
+  #reply-title {
+    display: none;
+  }
+}
+
 // Composer panel — keep it visually grouped, not styled to death.
 .itinerary-composer {
   margin: 0.5rem 0;
