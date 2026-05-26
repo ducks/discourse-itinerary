@@ -4,4 +4,5 @@ plugins:
     client: true
   itinerary_category_id:
     default: -1
+    min: -1
     client: true
