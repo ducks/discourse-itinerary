@@ -53,8 +53,9 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
   finders, trip + item JSON routes, Ember route and timeline rendering
 - **v0.4** - auto-create dedicated category; drop tag requirement
 - **v0.5** - hide itinerary category from /latest by default so the
-  plugin owns the UX; /itinerary is the canonical entrypoint
-- **later** — sidebar link, +Add buttons, filters, status tracking
+  plugin owns the UX; /itinerary is the canonical entrypoint, with
+  a sidebar link under the Community section
+- **later** — +Add buttons, filters, status tracking
 
 No ICS export, calendar sync, email parsing, or map view. Not planned for the
 near term.
