@@ -9,6 +9,12 @@ describe DiscourseItinerary::CategoryProvisioner do
     # configured setting already exist. Reset to a clean slate so each
     # example controls its own preconditions.
     before do
+      # default_categories_muted must be cleared BEFORE we delete the
+      # boot-created Itinerary category. Discourse validates that every
+      # id in default_categories_muted points at an existing category,
+      # so a stale id from a previous test makes the next setting write
+      # raise InvalidParameters.
+      SiteSetting.default_categories_muted = ""
       SiteSetting.itinerary_category_id = -1
       Category.where(
         "LOWER(name) = ? OR slug = ?",
@@ -73,10 +79,7 @@ describe DiscourseItinerary::CategoryProvisioner do
     end
 
     it "does not duplicate the category id in default_categories_muted on repeated provisioning" do
-      SiteSetting.default_categories_muted = ""
-
       described_class.ensure_category!
-      first_value = SiteSetting.default_categories_muted
 
       # Pretend the setting was cleared but the category still exists,
       # so ensure_category! re-finds it and tries to mute again.
