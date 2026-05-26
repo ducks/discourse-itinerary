@@ -1,0 +1,17 @@
+# Manifest read by discourse-plugin-screenshots. Lists which URLs to
+# capture for this plugin and, optionally, a seed file to run inside
+# the Rails test env before capture so the pages render real-looking
+# data rather than empty states.
+#
+# Spec: https://github.com/ducks/discourse-plugin-screenshots
+
+seed: spec/screenshot_seed.rb
+
+urls:
+  - path: /itinerary
+    name: trip-list
+    description: Trip list home page
+
+  - path: /itinerary/2
+    name: timeline
+    description: Per-trip timeline with day grouping
