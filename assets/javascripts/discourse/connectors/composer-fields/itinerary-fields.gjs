@@ -117,6 +117,15 @@ export default class ItineraryFields extends Component {
     return ["trip", "hotel", "event", "note"].includes(this.itemType);
   }
 
+  // Hotel and event are the types where "name" is meaningfully
+  // distinct from "location": a hotel has a brand name + an address,
+  // an event has a venue name + an address. Other types either
+  // already have a richer identifier (flights have origin/dest) or
+  // don't benefit from the distinction (note, transfer).
+  get showsName() {
+    return ["hotel", "event"].includes(this.itemType);
+  }
+
   get showsConfirmation() {
     return ["flight", "train", "hotel", "event"].includes(this.itemType);
   }
@@ -168,11 +177,14 @@ export default class ItineraryFields extends Component {
 
     const origin = this.composer.itinerary_origin;
     const destination = this.composer.itinerary_destination;
+    const name = this.composer.itinerary_name;
     const location = this.composer.itinerary_location;
 
     let title = cap(type);
     if (["flight", "train", "transfer"].includes(type) && (origin || destination)) {
       title = `${cap(type)}: ${origin || "?"} -> ${destination || "?"}`;
+    } else if (name) {
+      title = `${cap(type)}: ${name}`;
     } else if (location) {
       title = `${cap(type)}: ${location}`;
     }
@@ -210,6 +222,7 @@ export default class ItineraryFields extends Component {
           .join(" -> "),
       );
     }
+    push("Name", this.composer.itinerary_name);
     push("Location", this.composer.itinerary_location);
     push("Confirmation", this.composer.itinerary_confirmation_code);
     push("Status", this.composer.itinerary_status);
@@ -320,6 +333,12 @@ export default class ItineraryFields extends Component {
   @action
   setDestination(e) {
     this.composer.set("itinerary_destination", e.target.value || null);
+    this.synthesizeTitle();
+  }
+
+  @action
+  setName(e) {
+    this.composer.set("itinerary_name", e.target.value || null);
     this.synthesizeTitle();
   }
 
@@ -456,6 +475,20 @@ export default class ItineraryFields extends Component {
               value={{this.composer.itinerary_destination}}
               placeholder="MAD"
               {{on "input" this.setDestination}}
+            />
+          </label>
+        </div>
+      {{/if}}
+
+      {{#if this.showsName}}
+        <div class="itinerary-row">
+          <label>
+            Name
+            <input
+              type="text"
+              value={{this.composer.itinerary_name}}
+              placeholder="Memmo Alfama"
+              {{on "input" this.setName}}
             />
           </label>
         </div>

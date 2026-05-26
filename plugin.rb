@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.6.0
+# version: 0.6.1
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
@@ -27,6 +27,7 @@ module ::DiscourseItinerary
     "itinerary_ends_at" => :string,
     "itinerary_origin" => :string,
     "itinerary_destination" => :string,
+    "itinerary_name" => :string,
     "itinerary_location" => :string,
     "itinerary_confirmation_code" => :string,
     "itinerary_status" => :string,

@@ -11,6 +11,7 @@ class ItineraryItemSerializer < ApplicationSerializer
              :ends_at,
              :origin,
              :destination,
+             :name,
              :location,
              :confirmation_code,
              :status
@@ -36,6 +37,9 @@ class ItineraryItemSerializer < ApplicationSerializer
   end
   def destination
     cf("itinerary_destination")
+  end
+  def name
+    cf("itinerary_name")
   end
   def location
     cf("itinerary_location")
