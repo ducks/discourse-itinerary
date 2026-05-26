@@ -17,7 +17,9 @@ class ::ItineraryController < ::ApplicationController
   #
   # Lists every trip the user can see, sorted by start date.
   # Optional `category_id` query param scopes the list to one
-  # category. Items are not returned here; see #show.
+  # category. Optional `created_by_me=true` narrows to trips the
+  # current user created (used by the composer's parent-trip
+  # dropdown). Items are not returned here; see #show.
   def index
     category = nil
     if params[:category_id].present?
@@ -28,7 +30,14 @@ class ::ItineraryController < ::ApplicationController
       raise Discourse::NotFound unless category && guardian.can_see?(category)
     end
 
-    trip_topics = DiscourseItinerary::TripFinder.new(guardian: guardian, category: category).call
+    created_by = current_user if params[:created_by_me].to_s == "true" && current_user
+
+    trip_topics =
+      DiscourseItinerary::TripFinder.new(
+        guardian: guardian,
+        category: category,
+        created_by: created_by,
+      ).call
     trips = trip_topics.map { |t| DiscourseItinerary::Itinerary.new(t, guardian: guardian) }
 
     render_json_dump(

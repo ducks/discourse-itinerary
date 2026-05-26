@@ -2,6 +2,7 @@ import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
+import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { and, eq, or } from "discourse/truth-helpers";
 
@@ -20,9 +21,11 @@ import { and, eq, or } from "discourse/truth-helpers";
 // getters (`isTrip`, `showsRoute`, `showsLocation`, etc) rather than
 // long {{#if (eq ...)}} chains in the template.
 export default class ItineraryFields extends Component {
-  // Itinerary metadata is topic-scoped, so only show the panel when
-  // the composer is in a context that affects topic-level metadata:
-  // new topics, or edits to the OP. Never for replies, PMs, etc.
+  // Itinerary metadata is topic-scoped, so only mount the panel for
+  // composers that affect topic-level metadata: new topics or OP
+  // edits. The category gate lives inside the template (see
+  // `inItineraryCategory`) so the panel can react to category
+  // changes while the composer is open.
   static shouldRender(args) {
     const composer = args.model;
     if (!composer) {
@@ -31,11 +34,20 @@ export default class ItineraryFields extends Component {
     return composer.creatingTopic || composer.editingFirstPost;
   }
 
+  @service siteSettings;
+
+  // Local mirror of the item type so the conditional getters (showsRoute,
+  // showsLocation, etc.) re-evaluate when the user picks a new type.
+  // Glimmer's autotracking can't follow `composer.set(...)` because
+  // composer fields aren't @tracked, so we hold our own copy and push
+  // it onto the composer whenever it changes.
+  @tracked itemType;
   @tracked availableTrips = [];
   @tracked tripsLoaded = false;
 
   constructor() {
     super(...arguments);
+    this.itemType = this.composer.itinerary_item_type;
     this.loadTrips();
   }
 
@@ -43,8 +55,16 @@ export default class ItineraryFields extends Component {
     return this.args.outletArgs.model;
   }
 
-  get itemType() {
-    return this.composer.itinerary_item_type;
+  // Whether the composer is in the configured itinerary category.
+  // Used to gate the panel contents from the template so it shows up
+  // only for itinerary-category topics. Compare as numbers to dodge
+  // string-vs-int mismatches between site settings and composer state.
+  get inItineraryCategory() {
+    const configured = Number(this.siteSettings.itinerary_category_id);
+    if (!configured || configured <= 0) {
+      return false;
+    }
+    return Number(this.composer.categoryId) === configured;
   }
 
   get isTrip() {
@@ -78,14 +98,18 @@ export default class ItineraryFields extends Component {
   }
 
   async loadTrips() {
-    const categoryId = this.composer.categoryId;
-    if (!categoryId) {
+    // Always scope to the configured itinerary category. We don't
+    // rely on the composer's categoryId because at constructor time
+    // it can still be unset, and we'd then either bail (showing the
+    // "no trips" placeholder forever) or fetch all categories.
+    const categoryId = Number(this.siteSettings.itinerary_category_id);
+    if (!categoryId || categoryId <= 0) {
       this.tripsLoaded = true;
       return;
     }
     try {
       const response = await ajax("/itinerary/trips.json", {
-        data: { category_id: categoryId },
+        data: { category_id: categoryId, created_by_me: true },
       });
       this.availableTrips = response.trips || [];
     } catch {
@@ -101,6 +125,7 @@ export default class ItineraryFields extends Component {
   @action
   setItemType(e) {
     const newType = e.target.value || null;
+    this.itemType = newType;
     this.composer.set("itinerary_item_type", newType);
     // When switching to/from trip, clear the parent_trip_id so we
     // don't leave stale bookkeeping in the payload (trips don't have
@@ -121,14 +146,65 @@ export default class ItineraryFields extends Component {
     this.composer.set("itinerary_status", e.target.value || null);
   }
 
-  @action
-  setStartsAt(e) {
-    this.composer.set("itinerary_starts_at", e.target.value || null);
+  // Stored format is "YYYY-MM-DD" (date-only) or "YYYY-MM-DDTHH:MM"
+  // (date + time). The composer splits editing into two inputs so the
+  // browser doesn't silently drop a half-filled datetime-local value
+  // when the user enters a date but no time.
+  get startsAtDate() {
+    return (this.composer.itinerary_starts_at || "").slice(0, 10);
+  }
+
+  get startsAtTime() {
+    const v = this.composer.itinerary_starts_at || "";
+    return v.includes("T") ? v.split("T")[1].slice(0, 5) : "";
+  }
+
+  get endsAtDate() {
+    return (this.composer.itinerary_ends_at || "").slice(0, 10);
+  }
+
+  get endsAtTime() {
+    const v = this.composer.itinerary_ends_at || "";
+    return v.includes("T") ? v.split("T")[1].slice(0, 5) : "";
+  }
+
+  combineDateTime(date, time) {
+    if (!date) {
+      return null;
+    }
+    return time ? `${date}T${time}` : date;
   }
 
   @action
-  setEndsAt(e) {
-    this.composer.set("itinerary_ends_at", e.target.value || null);
+  setStartsAtDate(e) {
+    this.composer.set(
+      "itinerary_starts_at",
+      this.combineDateTime(e.target.value, this.startsAtTime),
+    );
+  }
+
+  @action
+  setStartsAtTime(e) {
+    this.composer.set(
+      "itinerary_starts_at",
+      this.combineDateTime(this.startsAtDate, e.target.value),
+    );
+  }
+
+  @action
+  setEndsAtDate(e) {
+    this.composer.set(
+      "itinerary_ends_at",
+      this.combineDateTime(e.target.value, this.endsAtTime),
+    );
+  }
+
+  @action
+  setEndsAtTime(e) {
+    this.composer.set(
+      "itinerary_ends_at",
+      this.combineDateTime(this.endsAtDate, e.target.value),
+    );
   }
 
   @action
@@ -152,6 +228,7 @@ export default class ItineraryFields extends Component {
   }
 
   <template>
+    {{#if this.inItineraryCategory}}
     <details class="itinerary-composer" open>
       <summary>Itinerary item</summary>
 
@@ -210,38 +287,44 @@ export default class ItineraryFields extends Component {
         <div class="itinerary-row">
           <label>
             Starts at
-            {{#if this.isTrip}}
-              <input
-                type="date"
-                value={{this.composer.itinerary_starts_at}}
-                {{on "input" this.setStartsAt}}
-              />
-            {{else}}
-              <input
-                type="datetime-local"
-                value={{this.composer.itinerary_starts_at}}
-                {{on "input" this.setStartsAt}}
-              />
-            {{/if}}
+            <input
+              type="date"
+              value={{this.startsAtDate}}
+              {{on "input" this.setStartsAtDate}}
+            />
           </label>
+
+          {{#unless this.isTrip}}
+            <label>
+              Time
+              <input
+                type="time"
+                value={{this.startsAtTime}}
+                {{on "input" this.setStartsAtTime}}
+              />
+            </label>
+          {{/unless}}
 
           {{#if this.showsEndsAt}}
             <label>
               Ends at
-              {{#if this.isTrip}}
-                <input
-                  type="date"
-                  value={{this.composer.itinerary_ends_at}}
-                  {{on "input" this.setEndsAt}}
-                />
-              {{else}}
-                <input
-                  type="datetime-local"
-                  value={{this.composer.itinerary_ends_at}}
-                  {{on "input" this.setEndsAt}}
-                />
-              {{/if}}
+              <input
+                type="date"
+                value={{this.endsAtDate}}
+                {{on "input" this.setEndsAtDate}}
+              />
             </label>
+
+            {{#unless this.isTrip}}
+              <label>
+                Time
+                <input
+                  type="time"
+                  value={{this.endsAtTime}}
+                  {{on "input" this.setEndsAtTime}}
+                />
+              </label>
+            {{/unless}}
           {{/if}}
         </div>
       {{/if}}
@@ -298,5 +381,6 @@ export default class ItineraryFields extends Component {
         </div>
       {{/if}}
     </details>
+    {{/if}}
   </template>
 }
