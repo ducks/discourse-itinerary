@@ -62,5 +62,41 @@ describe DiscourseItinerary::CategoryProvisioner do
       expect { described_class.ensure_category! }.not_to change { Category.count }
       expect(SiteSetting.itinerary_category_id).to eq(shouty.id)
     end
+
+    it "appends the category id to default_categories_muted so new users don't see it on /latest" do
+      SiteSetting.default_categories_muted = ""
+
+      described_class.ensure_category!
+
+      ids = SiteSetting.default_categories_muted.split("|")
+      expect(ids).to include(SiteSetting.itinerary_category_id.to_s)
+    end
+
+    it "does not duplicate the category id in default_categories_muted on repeated provisioning" do
+      SiteSetting.default_categories_muted = ""
+
+      described_class.ensure_category!
+      first_value = SiteSetting.default_categories_muted
+
+      # Pretend the setting was cleared but the category still exists,
+      # so ensure_category! re-finds it and tries to mute again.
+      cat_id = SiteSetting.itinerary_category_id
+      SiteSetting.itinerary_category_id = -1
+      described_class.ensure_category!
+
+      expect(SiteSetting.itinerary_category_id).to eq(cat_id)
+      ids = SiteSetting.default_categories_muted.split("|")
+      expect(ids.count(cat_id.to_s)).to eq(1)
+    end
+
+    it "preserves existing muted categories" do
+      other = Fabricate(:category)
+      SiteSetting.default_categories_muted = other.id.to_s
+
+      described_class.ensure_category!
+
+      ids = SiteSetting.default_categories_muted.split("|")
+      expect(ids).to include(other.id.to_s, SiteSetting.itinerary_category_id.to_s)
+    end
   end
 end
