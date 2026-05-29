@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.6.1
+# version: 0.7.0
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
@@ -88,6 +88,7 @@ after_initialize do
   require_relative "lib/discourse_itinerary/trip_finder"
   require_relative "lib/discourse_itinerary/trip_item_finder"
   require_relative "lib/discourse_itinerary/category_provisioner"
+  require_relative "lib/discourse_itinerary/ics_formatter"
   require_relative "app/serializers/trip_serializer"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
@@ -114,6 +115,16 @@ after_initialize do
         },
         :constraints => {
           format: :json,
+          id: /\d+/,
+        }
+
+    # Calendar subscription / download for one trip. Requires login;
+    # see ItineraryController#export for the auth rationale.
+    get "/itinerary/trips/:id.ics" => "itinerary#export",
+        :defaults => {
+          format: :ics,
+        },
+        :constraints => {
           id: /\d+/,
         }
 

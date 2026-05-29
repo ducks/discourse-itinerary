@@ -60,10 +60,14 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
 - **v0.6** - auto-synthesize topic title and body from itinerary
   fields. Hide the bare title input; pre-fill the body. Item topics
   no longer require the user to invent a title.
-- **later** — filters, status tracking, drag-reorder
+- **v0.7** - iCalendar (.ics) export per trip. Download a single
+  calendar file containing one VEVENT per item with a start time;
+  import into Apple Calendar, Google Calendar, or Outlook.
+- **later** — filters, status tracking, drag-reorder, per-user
+  subscribe URLs so calendar apps can subscribe rather than download
 
-No ICS export, calendar sync, email parsing, or map view. Not planned for the
-near term.
+No calendar sync, email parsing, or map view. Not planned for the near term.
+ICS export shipped in v0.7.
 
 ## Site settings
 

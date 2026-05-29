@@ -131,4 +131,39 @@ describe ItineraryController, type: :request do
       expect(response.status).to eq(404)
     end
   end
+
+  describe "GET /itinerary/trips/:id.ics" do
+    it "returns an iCalendar document with one event per item" do
+      t = trip
+      item(parent_trip: t, starts_at: "2026-09-20T14:30", item_type: "flight",
+           origin: "PDX", destination: "MAD")
+      item(parent_trip: t, starts_at: "2026-09-21", item_type: "hotel",
+           name: "Artrip", location: "Madrid")
+
+      sign_in(user)
+      get "/itinerary/trips/#{t.id}.ics"
+
+      expect(response.status).to eq(200)
+      expect(response.media_type).to eq("text/calendar")
+      expect(response.body).to start_with("BEGIN:VCALENDAR\r\n")
+      expect(response.body.scan("BEGIN:VEVENT").length).to eq(2)
+      expect(response.headers["Content-Disposition"]).to include("attachment")
+      expect(response.headers["Content-Disposition"]).to include(".ics")
+    end
+
+    it "returns 404 for a missing trip" do
+      sign_in(user)
+      get "/itinerary/trips/9999999.ics"
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 404 when the trip is in a category the user can't see" do
+      private_category = Fabricate(:private_category, group: Fabricate(:group))
+      hidden = trip(category: private_category)
+
+      sign_in(user)
+      get "/itinerary/trips/#{hidden.id}.ics"
+      expect(response.status).to eq(404)
+    end
+  end
 end

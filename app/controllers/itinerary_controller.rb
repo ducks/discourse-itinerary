@@ -59,4 +59,26 @@ class ::ItineraryController < ::ApplicationController
         trip.items.map { |t| ItineraryItemSerializer.new(t, scope: guardian, root: false).as_json },
     )
   end
+
+  # GET /itinerary/trips/:id.ics
+  #
+  # Returns a single iCalendar file for the trip, one VEVENT per
+  # item with a `starts_at` value. Items without a start time are
+  # skipped (notes, for instance).
+  #
+  # Auth model: requires a logged-in session. Calendar apps that
+  # follow subscribe-URL semantics (Apple Calendar, Google Calendar)
+  # don't carry browser cookies and so can't subscribe to this URL
+  # directly; for the v0.7 use case (download once, double-click to
+  # add) that's fine. Per-user subscribe tokens are a follow-up.
+  def export
+    trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
+    raise Discourse::NotFound unless trip
+
+    ics = DiscourseItinerary::IcsFormatter.call(trip: trip, items: trip.items)
+
+    filename = "#{trip.slug.presence || "trip-#{trip.id}"}.ics"
+    response.headers["Content-Disposition"] = "attachment; filename=\"#{filename}\""
+    render plain: ics, content_type: "text/calendar; charset=utf-8"
+  end
 end
