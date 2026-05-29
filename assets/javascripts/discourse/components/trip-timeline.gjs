@@ -66,13 +66,22 @@ export default class TripTimeline extends Component {
       <header class="itinerary-trip__header">
         <div class="itinerary-trip__title-row">
           <h2 class="itinerary-trip__title">{{@trip.title}}</h2>
-          <button
-            type="button"
-            class="btn btn-primary itinerary-trip__add"
-            {{on "click" this.addLeg}}
-          >
-            + Add leg
-          </button>
+          <div class="itinerary-trip__actions">
+            <a
+              class="btn btn-default itinerary-trip__ics"
+              href="/itinerary/trips/{{@trip.id}}.ics"
+              title="Download as a calendar file you can import into Apple Calendar, Google Calendar, or Outlook."
+            >
+              Download .ics
+            </a>
+            <button
+              type="button"
+              class="btn btn-primary itinerary-trip__add"
+              {{on "click" this.addLeg}}
+            >
+              + Add leg
+            </button>
+          </div>
         </div>
         <div class="itinerary-trip__meta">
           {{#if @trip.creator}}
