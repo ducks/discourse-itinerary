@@ -9,8 +9,7 @@ describe ItineraryController, type: :request do
   before { SiteSetting.itinerary_enabled = true }
 
   def trip(starts_at: "2026-09-20", category: self.category, title: nil)
-    attrs = { category: category }
-    attrs[:title] = title if title
+    attrs = { category: category, title: title || "Itinerary trip fixture" }
     topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -21,7 +20,7 @@ describe ItineraryController, type: :request do
   end
 
   def item(parent_trip:, starts_at:, item_type: "flight", **extra)
-    topic = Fabricate(:topic, category: category)
+    topic = Fabricate(:topic, category: category, title: "Itinerary item fixture")
     topic.custom_fields["itinerary_item_type"] = item_type
     topic.custom_fields["itinerary_parent_trip_id"] = parent_trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -113,7 +112,7 @@ describe ItineraryController, type: :request do
     end
 
     it "returns 404 when the topic exists but isn't a trip" do
-      flight = Fabricate(:topic, category: category)
+      flight = Fabricate(:topic, category: category, title: "Itinerary flight fixture")
       flight.custom_fields["itinerary_item_type"] = "flight"
       flight.save_custom_fields
 
@@ -135,10 +134,20 @@ describe ItineraryController, type: :request do
   describe "GET /itinerary/trips/:id.ics" do
     it "returns an iCalendar document with one event per item" do
       t = trip
-      item(parent_trip: t, starts_at: "2026-09-20T14:30", item_type: "flight",
-           origin: "PDX", destination: "MAD")
-      item(parent_trip: t, starts_at: "2026-09-21", item_type: "hotel",
-           name: "Artrip", location: "Madrid")
+      item(
+        parent_trip: t,
+        starts_at: "2026-09-20T14:30",
+        item_type: "flight",
+        origin: "PDX",
+        destination: "MAD",
+      )
+      item(
+        parent_trip: t,
+        starts_at: "2026-09-21",
+        item_type: "hotel",
+        name: "Artrip",
+        location: "Madrid",
+      )
 
       sign_in(user)
       get "/itinerary/trips/#{t.id}.ics"

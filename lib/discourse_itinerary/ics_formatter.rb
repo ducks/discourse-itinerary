@@ -5,14 +5,14 @@ module DiscourseItinerary
   #
   # The output is a single VCALENDAR with one VEVENT per item that has
   # a `starts_at` value. Items without a start time (a bare note, say)
-  # are skipped — they have no place on a calendar.
+  # are skipped - they have no place on a calendar.
   #
   # When an item has timezones set, the start/end is tagged with a
   # TZID referring to a VTIMEZONE block emitted at the top of the
   # calendar. Stored times are local wall-clock in the named zone,
   # so importing calendars resolve them via their own IANA timezone
   # database keyed on the TZID. Items without a timezone fall back
-  # to floating times — the composer prefills timezones for new
+  # to floating times - the composer prefills timezones for new
   # items but doesn't enforce them on the server, so legacy or
   # API-created items without zones still export cleanly.
   class IcsFormatter
@@ -91,7 +91,14 @@ module DiscourseItinerary
     def vtimezone_lines
       out = []
       used_timezones.each do |id|
-        tz = (TZInfo::Timezone.get(id) rescue nil)
+        tz =
+          (
+            begin
+              TZInfo::Timezone.get(id)
+            rescue StandardError
+              nil
+            end
+          )
         next unless tz
         offset = tz.current_period.utc_offset + tz.current_period.std_offset
         offset_str = format_offset(offset)
@@ -149,7 +156,7 @@ module DiscourseItinerary
     end
 
     # Build the SUMMARY line based on item_type. Flight/train/transfer
-    # use the route ("Flight PDX → MAD"); hotel/event use the name or
+    # use the route ("Flight PDX -> MAD"); hotel/event use the name or
     # location; note falls back to the topic title.
     def summary_for(item)
       type = cf(item, "itinerary_item_type")
@@ -177,12 +184,11 @@ module DiscourseItinerary
 
     def route(origin, destination)
       return nil if origin.blank? || destination.blank?
-      "#{origin} → #{destination}"
+      "#{origin} -> #{destination}"
     end
 
     def location_for(item)
-      [cf(item, "itinerary_location"), cf(item, "itinerary_destination")]
-        .map(&:presence)
+      [cf(item, "itinerary_location"), cf(item, "itinerary_destination")].map(&:presence)
         .compact
         .first
     end
@@ -199,7 +205,7 @@ module DiscourseItinerary
     # Build a DTSTART / DTEND property with an optional TZID
     # parameter. When `tz` is present, the time is interpreted as
     # local wall-clock in that zone; when absent we emit a floating
-    # time (no TZID parameter) — only used for legacy items written
+    # time (no TZID parameter) - only used for legacy items written
     # before timezone fields were required.
     def dt_property(name, iso, tz)
       if tz
@@ -221,19 +227,14 @@ module DiscourseItinerary
       "#{padded[0, 8]}T#{padded[8, 6]}"
     end
 
-    # Escape a value for an iCal text field per RFC 5545 §3.3.11.
+    # Escape a value for an iCal text field per RFC 5545 3.3.11.
     # Backslash first, then commas, semicolons, and newlines.
     def escape_text(value)
-      value
-        .to_s
-        .gsub("\\", "\\\\\\\\")
-        .gsub("\n", "\\n")
-        .gsub(",", "\\,")
-        .gsub(";", "\\;")
+      value.to_s.gsub("\\", "\\\\\\\\").gsub("\n", "\\n").gsub(",", "\\,").gsub(";", "\\;")
     end
 
     # Fold lines longer than 75 octets at 75-octet boundaries per
-    # RFC 5545 §3.1. Continuation lines start with a single space.
+    # RFC 5545 3.1. Continuation lines start with a single space.
     # Most itinerary lines are short enough to skip folding entirely.
     def fold(line)
       return line if line.bytesize <= 75

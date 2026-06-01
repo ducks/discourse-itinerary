@@ -3,8 +3,8 @@
 require "rails_helper"
 
 describe DiscourseItinerary::IcsFormatter do
-  fab!(:user) { Fabricate(:user) }
-  fab!(:category) { Fabricate(:category) }
+  fab!(:user)
+  fab!(:category)
   let(:guardian) { Guardian.new(user) }
 
   def make_trip(title:)
@@ -15,7 +15,7 @@ describe DiscourseItinerary::IcsFormatter do
   end
 
   def make_item(trip:, starts_at:, **fields)
-    topic = Fabricate(:topic, category: category)
+    topic = Fabricate(:topic, category: category, title: "Itinerary item fixture")
     topic.custom_fields["itinerary_parent_trip_id"] = trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
     fields.each { |k, v| topic.custom_fields["itinerary_#{k}"] = v }
@@ -24,7 +24,7 @@ describe DiscourseItinerary::IcsFormatter do
   end
 
   describe "the calendar wrapper" do
-    let(:trip) { make_trip(title: "Europe 2026") }
+    let(:trip) { make_trip(title: "Trip to Europe 2026") }
 
     it "wraps events in VCALENDAR with required headers" do
       flight =
@@ -43,7 +43,7 @@ describe DiscourseItinerary::IcsFormatter do
       expect(ics).to end_with("END:VCALENDAR\r\n")
       expect(ics).to include("VERSION:2.0")
       expect(ics).to include("PRODID:-//Discourse Itinerary//EN")
-      expect(ics).to include("X-WR-CALNAME:Europe 2026")
+      expect(ics).to include("X-WR-CALNAME:Trip to Europe 2026")
     end
 
     it "uses CRLF line endings throughout" do
@@ -56,7 +56,7 @@ describe DiscourseItinerary::IcsFormatter do
   end
 
   describe "event formatting" do
-    let(:trip) { make_trip(title: "Europe 2026") }
+    let(:trip) { make_trip(title: "Trip to Europe 2026") }
 
     it "emits one VEVENT per item with start and end times" do
       flight =
@@ -74,11 +74,11 @@ describe DiscourseItinerary::IcsFormatter do
       expect(ics.scan("BEGIN:VEVENT").length).to eq(1)
       expect(ics).to include("DTSTART:20260920T143000")
       expect(ics).to include("DTEND:20260921T091500")
-      expect(ics).to include("SUMMARY:Flight PDX → MAD")
+      expect(ics).to include("SUMMARY:Flight PDX -> MAD")
     end
 
     it "skips items without a starts_at value" do
-      note = Fabricate(:topic, category: category)
+      note = Fabricate(:topic, category: category, title: "Itinerary note fixture")
       note.custom_fields["itinerary_parent_trip_id"] = trip.id
       note.custom_fields["itinerary_item_type"] = "note"
       note.save_custom_fields
@@ -137,7 +137,7 @@ describe DiscourseItinerary::IcsFormatter do
   end
 
   describe "timezones" do
-    let(:trip) { make_trip(title: "Europe 2026") }
+    let(:trip) { make_trip(title: "Trip to Europe 2026") }
 
     it "tags DTSTART and DTEND with TZID when an item has timezones" do
       flight =
