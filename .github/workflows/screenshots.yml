@@ -10,6 +10,17 @@ name: Screenshots
 on:
   push:
     branches: [main]
+    paths:
+      # Only rebuild screenshots when something that can change
+      # the rendered output actually changes. Server-only files
+      # (lib/, spec/) and meta files (README, other workflows)
+      # don't trigger a run. workflow_dispatch is always there
+      # for manual re-captures.
+      - "assets/**"
+      - "config/screenshots.yml"
+      - "app/**"
+      - "plugin.rb"
+      - ".github/workflows/screenshots.yml"
   workflow_dispatch:
 
 permissions:
