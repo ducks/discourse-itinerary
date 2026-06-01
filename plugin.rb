@@ -141,9 +141,14 @@ after_initialize do
           id: /\d+/,
         }
 
-    # Calendar subscription / download for one trip. Requires login;
-    # see ItineraryController#export for the auth rationale.
-    get "/itinerary/trips/:id.ics" => "itinerary#export",
+    # Calendar download for one trip. The URL deliberately avoids a
+    # `.ics` extension because Rails' route system treats dotted
+    # endings as format extensions, which fights the page glob below
+    # (see rails/rails#20264). Using a slash-separated path takes
+    # routing out of the equation entirely; the response sets a
+    # `Content-Disposition: attachment; filename=...ics` header so
+    # the downloaded file still has the right extension on disk.
+    get "/itinerary/trips/:id/ics" => "itinerary#export",
         :defaults => {
           format: :ics,
         },
@@ -156,15 +161,8 @@ after_initialize do
     # takes over and resolves the path client-side via the plugin's
     # route map. Without these, Rails 404s before the bootstrap HTML
     # reaches the browser.
-    #
-    # The glob uses a lambda constraint rather than `format: :html`
-    # in a hash. Hash-style format constraints are a known no-op on
-    # glob routes (rails/rails#20264) - the glob matches anyway and
-    # /itinerary/trips/123.ics ends up rendering the SPA shell with
-    # text/html. A lambda runs against the parsed request so it sees
-    # the real :ics / :json / :html format and rejects non-html.
     get "/itinerary" => "itinerary#page", :constraints => { format: :html }
-    get "/itinerary/*path" => "itinerary#page", :constraints => ->(req) { req.format == :html }
+    get "/itinerary/*path" => "itinerary#page", :constraints => { format: :html }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----

@@ -98,7 +98,7 @@ export default class TripTimeline extends Component {
           <div class="itinerary-trip__actions">
             <a
               class="btn btn-default itinerary-trip__ics"
-              href="/itinerary/trips/{{@trip.id}}.ics"
+              href="/itinerary/trips/{{@trip.id}}/ics"
               title="Download as a calendar file you can import into Apple Calendar, Google Calendar, or Outlook."
             >
               Download .ics
