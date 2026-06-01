@@ -26,7 +26,7 @@ module ::DiscourseItinerary
     "itinerary_starts_at" => :string,
     "itinerary_ends_at" => :string,
     # IANA timezone identifiers (e.g. "America/Los_Angeles"). Stored
-    # alongside starts_at / ends_at — date/time fields hold local
+    # alongside starts_at / ends_at - date/time fields hold local
     # wall-clock times in the named zone, and the calendar export
     # uses these zones to emit VTIMEZONE blocks plus TZID parameters
     # so importing calendars render the correct local times.
@@ -43,7 +43,6 @@ module ::DiscourseItinerary
     "itinerary_confirmation_code" => :string,
     "itinerary_status" => :string,
   }.freeze
-
 
   # Allowed values for `itinerary_item_type`. `trip` is the container
   # type; everything else is an item that belongs to a trip via
@@ -96,7 +95,6 @@ module ::DiscourseItinerary
     @valid_timezones ||= TZInfo::Timezone.all_identifiers.to_set
     @valid_timezones.include?(id)
   end
-
 end
 
 after_initialize do
@@ -158,8 +156,17 @@ after_initialize do
     # the route map (assets/.../discourse-itinerary-route-map.js)
     # resolves the path client-side. Without these, Rails 404s before
     # the bootstrap HTML reaches the browser.
+    #
+    # The path glob explicitly excludes anything ending in a known
+    # non-html extension (.ics, .json) so it doesn't intercept the
+    # API and calendar-export routes above when Rails resolves
+    # /itinerary/trips/123.ics or /itinerary/trips.json.
     get "/itinerary" => "itinerary#page", :constraints => { format: :html }
-    get "/itinerary/*path" => "itinerary#page", :constraints => { format: :html }
+    get "/itinerary/*path" => "itinerary#page",
+        :constraints => {
+          format: :html,
+          path: /\A(?!.*\.(ics|json)\z).*\z/,
+        }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----
