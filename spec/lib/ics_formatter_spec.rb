@@ -136,6 +136,61 @@ describe DiscourseItinerary::IcsFormatter do
     end
   end
 
+  describe "timezones" do
+    let(:trip) { make_trip(title: "Europe 2026") }
+
+    it "tags DTSTART and DTEND with TZID when an item has timezones" do
+      flight =
+        make_item(
+          trip: trip,
+          starts_at: "2026-09-20T14:30",
+          ends_at: "2026-09-20T22:15",
+          start_timezone: "America/Los_Angeles",
+          end_timezone: "Europe/Madrid",
+          item_type: "flight",
+        )
+
+      ics = described_class.call(trip: trip, items: [flight])
+
+      expect(ics).to include("DTSTART;TZID=America/Los_Angeles:20260920T143000")
+      expect(ics).to include("DTEND;TZID=Europe/Madrid:20260920T221500")
+    end
+
+    it "emits a VTIMEZONE block for each distinct zone used" do
+      flight =
+        make_item(
+          trip: trip,
+          starts_at: "2026-09-20T14:30",
+          ends_at: "2026-09-20T22:15",
+          start_timezone: "America/Los_Angeles",
+          end_timezone: "Europe/Madrid",
+          item_type: "flight",
+        )
+      hotel =
+        make_item(
+          trip: trip,
+          starts_at: "2026-09-21T15:00",
+          start_timezone: "Europe/Madrid",
+          end_timezone: "Europe/Madrid",
+          item_type: "hotel",
+        )
+
+      ics = described_class.call(trip: trip, items: [flight, hotel])
+
+      expect(ics).to include("BEGIN:VTIMEZONE")
+      expect(ics).to include("TZID:America/Los_Angeles")
+      expect(ics).to include("TZID:Europe/Madrid")
+      expect(ics.scan("BEGIN:VTIMEZONE").length).to eq(2)
+    end
+
+    it "falls back to a floating time when an item has no timezone" do
+      legacy = make_item(trip: trip, starts_at: "2026-09-20T14:30", item_type: "event")
+      ics = described_class.call(trip: trip, items: [legacy])
+      expect(ics).to include("DTSTART:20260920T143000")
+      expect(ics).not_to match(/^BEGIN:VTIMEZONE/)
+    end
+  end
+
   describe "text escaping" do
     let(:trip) { make_trip(title: "Tricky, trip; with\\backslash") }
 

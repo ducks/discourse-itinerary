@@ -9,6 +9,8 @@ class ItineraryItemSerializer < ApplicationSerializer
              :parent_trip_id,
              :starts_at,
              :ends_at,
+             :start_timezone,
+             :end_timezone,
              :origin,
              :destination,
              :name,
@@ -31,6 +33,12 @@ class ItineraryItemSerializer < ApplicationSerializer
   end
   def ends_at
     cf("itinerary_ends_at")
+  end
+  def start_timezone
+    cf("itinerary_start_timezone")
+  end
+  def end_timezone
+    cf("itinerary_end_timezone")
   end
   def origin
     cf("itinerary_origin")

@@ -7,12 +7,12 @@ module DiscourseItinerary
   # a `starts_at` value. Items without a start time (a bare note, say)
   # are skipped — they have no place on a calendar.
   #
-  # Times are emitted as floating local times rather than UTC. Travel
-  # itineraries are nearly always written in the local time of the
-  # departure city; converting to UTC requires the per-city tz which
-  # we don't store yet. The downside is that an importing calendar
-  # interprets the time in the user's calendar timezone, not in the
-  # city's. Adding proper VTIMEZONE blocks is a future patch.
+  # Each event's start/end is tagged with a TZID referring to a
+  # VTIMEZONE block emitted at the top of the calendar. Times in the
+  # JOBL are local wall-clock times in the named zone, so importing
+  # calendars resolve them via their own IANA timezone database keyed
+  # on the TZID. Items without a timezone (legacy data from before
+  # the timezone fields were required) fall back to floating times.
   class IcsFormatter
     PRODID = "-//Discourse Itinerary//EN"
     LINE_TERMINATOR = "\r\n"
@@ -35,6 +35,8 @@ module DiscourseItinerary
       lines << "METHOD:PUBLISH"
       lines << "X-WR-CALNAME:#{escape_text(@trip.title)}"
 
+      vtimezone_lines.each { |l| lines << l }
+
       now = Time.now.utc.strftime("%Y%m%dT%H%M%SZ")
 
       @items.each do |item|
@@ -42,7 +44,18 @@ module DiscourseItinerary
         next if starts_at.blank?
 
         ends_at = cf(item, "itinerary_ends_at").presence
-        lines.concat(event_lines(item, starts_at: starts_at, ends_at: ends_at, dtstamp: now))
+        start_tz = cf(item, "itinerary_start_timezone").presence
+        end_tz = cf(item, "itinerary_end_timezone").presence
+        lines.concat(
+          event_lines(
+            item,
+            starts_at: starts_at,
+            ends_at: ends_at,
+            start_tz: start_tz,
+            end_tz: end_tz,
+            dtstamp: now,
+          ),
+        )
       end
 
       lines << "END:VCALENDAR"
@@ -51,12 +64,67 @@ module DiscourseItinerary
 
     private
 
-    def event_lines(item, starts_at:, ends_at:, dtstamp:)
+    # All distinct IANA zones used by this trip, both start and end.
+    # We emit one VTIMEZONE per zone so each TZID parameter in the
+    # event blocks resolves against an in-document definition rather
+    # than only the importer's database (some strict importers
+    # require the in-document definition).
+    def used_timezones
+      ids = []
+      @items.each do |item|
+        s = cf(item, "itinerary_start_timezone").presence
+        e = cf(item, "itinerary_end_timezone").presence
+        ids << s if s
+        ids << e if e
+      end
+      ids.uniq
+    end
+
+    # Emit a VTIMEZONE with a single STANDARD component carrying the
+    # zone's current offset. We deliberately don't enumerate DST
+    # transitions: doing it correctly is involved and importing
+    # calendars resolve TZIDs via their own IANA database anyway.
+    # The presence of the VTIMEZONE block satisfies strict importers
+    # like Outlook; the contents are a hint.
+    def vtimezone_lines
+      out = []
+      used_timezones.each do |id|
+        tz = (TZInfo::Timezone.get(id) rescue nil)
+        next unless tz
+        offset = tz.current_period.utc_offset + tz.current_period.std_offset
+        offset_str = format_offset(offset)
+        abbrev = tz.current_period.zone_identifier.to_s
+        abbrev = id.split("/").last if abbrev.empty?
+
+        out << "BEGIN:VTIMEZONE"
+        out << "TZID:#{id}"
+        out << "BEGIN:STANDARD"
+        out << "DTSTART:19700101T000000"
+        out << "TZOFFSETFROM:#{offset_str}"
+        out << "TZOFFSETTO:#{offset_str}"
+        out << "TZNAME:#{abbrev}"
+        out << "END:STANDARD"
+        out << "END:VTIMEZONE"
+      end
+      out
+    end
+
+    # Render a UTC offset in seconds as iCal's basic format (+HHMM
+    # or -HHMM).
+    def format_offset(seconds)
+      sign = seconds.negative? ? "-" : "+"
+      total = seconds.abs
+      hours = total / 3600
+      minutes = (total % 3600) / 60
+      format("%s%02d%02d", sign, hours, minutes)
+    end
+
+    def event_lines(item, starts_at:, ends_at:, start_tz:, end_tz:, dtstamp:)
       out = ["BEGIN:VEVENT"]
       out << "UID:#{uid_for(item)}"
       out << "DTSTAMP:#{dtstamp}"
-      out << "DTSTART:#{ical_datetime(starts_at)}"
-      out << "DTEND:#{ical_datetime(ends_at)}" if ends_at
+      out << dt_property("DTSTART", starts_at, start_tz)
+      out << dt_property("DTEND", ends_at, end_tz || start_tz) if ends_at
       out << "SUMMARY:#{escape_text(summary_for(item))}"
 
       loc = location_for(item)
@@ -126,11 +194,24 @@ module DiscourseItinerary
       parts.join("\n")
     end
 
+    # Build a DTSTART / DTEND property with an optional TZID
+    # parameter. When `tz` is present, the time is interpreted as
+    # local wall-clock in that zone; when absent we emit a floating
+    # time (no TZID parameter) — only used for legacy items written
+    # before timezone fields were required.
+    def dt_property(name, iso, tz)
+      if tz
+        "#{name};TZID=#{tz}:#{ical_datetime(iso)}"
+      else
+        "#{name}:#{ical_datetime(iso)}"
+      end
+    end
+
     # Take an ISO-8601 string ("2026-09-20T14:30") and emit it as
     # iCal's basic format ("20260920T143000"). If the string is a
-    # date only ("2026-09-20") we emit a VALUE=DATE form — but that
-    # would require a different property syntax; for simplicity we
-    # pad date-only inputs to midnight.
+    # date only ("2026-09-20") we pad to midnight; a strict export
+    # would emit VALUE=DATE, but the date-only case only occurs for
+    # the trip container which doesn't render its own event.
     def ical_datetime(iso)
       digits = iso.to_s.gsub(/[^0-9]/, "")
       # YYYYMMDDHHMMSS, padding seconds (and minutes if missing).
