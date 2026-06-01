@@ -151,24 +151,20 @@ after_initialize do
           id: /\d+/,
         }
 
-    # HTML entrypoints for the Ember client routes. Rails matches the
-    # URL and returns Discourse's app shell; Ember then takes over and
-    # the route map (assets/.../discourse-itinerary-route-map.js)
-    # resolves the path client-side. Without these, Rails 404s before
-    # the bootstrap HTML reaches the browser.
+    # HTML entrypoints for the Ember client routes. Rails matches
+    # these URLs and returns Discourse's app shell; Ember then
+    # takes over and resolves the path client-side via the plugin's
+    # route map. Without these, Rails 404s before the bootstrap HTML
+    # reaches the browser.
     #
-    # `format: false` tells Rails not to peel an extension off the
-    # URL when matching this route. The page glob would otherwise
-    # eat /itinerary/trips/123.ics by stripping `.ics` as the format
-    # and matching the resulting `trips/123` path. Combined with the
-    # path-level exclusion of dotted endings, the glob only fires
-    # for plain HTML paths.
+    # The glob uses a lambda constraint rather than `format: :html`
+    # in a hash. Hash-style format constraints are a known no-op on
+    # glob routes (rails/rails#20264) - the glob matches anyway and
+    # /itinerary/trips/123.ics ends up rendering the SPA shell with
+    # text/html. A lambda runs against the parsed request so it sees
+    # the real :ics / :json / :html format and rejects non-html.
     get "/itinerary" => "itinerary#page", :constraints => { format: :html }
-    get "/itinerary/*path" => "itinerary#page",
-        :format => false,
-        :constraints => {
-          path: /(?!.*\.(ics|json)).*/,
-        }
+    get "/itinerary/*path" => "itinerary#page", :constraints => ->(req) { req.format == :html }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----
