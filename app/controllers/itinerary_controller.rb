@@ -10,6 +10,9 @@ class ::ItineraryController < ::ApplicationController
   # is what actually returns trip data; this action just renders the
   # SPA layout.
   def page
+    Rails.logger.warn(
+      "ITINERARY_DEBUG page action hit: #{request.path} format=#{request.format} params=#{params.inspect}",
+    )
     render "default/empty"
   end
 
@@ -72,6 +75,9 @@ class ::ItineraryController < ::ApplicationController
   # directly; for the v0.7 use case (download once, double-click to
   # add) that's fine. Per-user subscribe tokens are a follow-up.
   def export
+    Rails.logger.warn(
+      "ITINERARY_DEBUG export action hit: #{request.path} format=#{request.format} params=#{params.inspect}",
+    )
     trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
     raise Discourse::NotFound unless trip
 

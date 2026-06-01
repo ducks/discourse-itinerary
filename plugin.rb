@@ -128,6 +128,16 @@ after_initialize do
   # Discourse catch-all (the main app has wildcard fallbacks that
   # would otherwise serve the SPA shell for /itinerary/trips/:id/ics
   # before our dedicated export route gets a chance to match).
+  Rails.application.config.after_initialize do
+    matching = Rails.application.routes.routes.select { |r| r.path.spec.to_s.include?("itinerary") }
+    Rails.logger.warn("ITINERARY_DEBUG routes touching itinerary:")
+    matching.each do |r|
+      Rails.logger.warn(
+        "  #{r.verb} #{r.path.spec} -> #{r.defaults.inspect} reqs=#{r.constraints.inspect}",
+      )
+    end
+  end
+
   Discourse::Application.routes.prepend do
     get "/itinerary/trips" => "itinerary#index",
         :defaults => {
