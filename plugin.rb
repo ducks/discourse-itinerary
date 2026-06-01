@@ -165,7 +165,7 @@ after_initialize do
     get "/itinerary/*path" => "itinerary#page",
         :constraints => {
           format: :html,
-          path: /\A(?!.*\.(ics|json)\z).*\z/,
+          path: /(?!.*\.(ics|json)).*/,
         }
   end
 
