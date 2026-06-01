@@ -157,14 +157,16 @@ after_initialize do
     # resolves the path client-side. Without these, Rails 404s before
     # the bootstrap HTML reaches the browser.
     #
-    # The path glob explicitly excludes anything ending in a known
-    # non-html extension (.ics, .json) so it doesn't intercept the
-    # API and calendar-export routes above when Rails resolves
-    # /itinerary/trips/123.ics or /itinerary/trips.json.
+    # `format: false` tells Rails not to peel an extension off the
+    # URL when matching this route. The page glob would otherwise
+    # eat /itinerary/trips/123.ics by stripping `.ics` as the format
+    # and matching the resulting `trips/123` path. Combined with the
+    # path-level exclusion of dotted endings, the glob only fires
+    # for plain HTML paths.
     get "/itinerary" => "itinerary#page", :constraints => { format: :html }
     get "/itinerary/*path" => "itinerary#page",
+        :format => false,
         :constraints => {
-          format: :html,
           path: /(?!.*\.(ics|json)).*/,
         }
   end
