@@ -124,7 +124,11 @@ after_initialize do
     Rails.logger.warn("discourse-itinerary: failed to provision default category: #{e.message}")
   end
 
-  Discourse::Application.routes.append do
+  # Prepend rather than append so our routes win against any
+  # Discourse catch-all (the main app has wildcard fallbacks that
+  # would otherwise serve the SPA shell for /itinerary/trips/:id/ics
+  # before our dedicated export route gets a chance to match).
+  Discourse::Application.routes.prepend do
     get "/itinerary/trips" => "itinerary#index",
         :defaults => {
           format: :json,
