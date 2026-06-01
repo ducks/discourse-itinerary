@@ -124,28 +124,6 @@ after_initialize do
     Rails.logger.warn("discourse-itinerary: failed to provision default category: #{e.message}")
   end
 
-  Rails.application.config.after_initialize do
-    require "action_dispatch/journey"
-    test_path = "/itinerary/trips/123/ics"
-    req =
-      ActionDispatch::Request.new(
-        "REQUEST_METHOD" => "GET",
-        "PATH_INFO" => test_path,
-        "rack.input" => "",
-      )
-    matched = []
-    Rails
-      .application
-      .routes
-      .router
-      .recognize(req) do |route, params|
-        matched << "#{route.verb} #{route.path.spec} -> #{route.defaults.inspect}"
-      end
-    puts("ITINERARY_DEBUG routes that recognize #{test_path}:")
-    matched.each { |m| puts("  #{m}") }
-    puts("ITINERARY_DEBUG (#{matched.length} matches)")
-  end
-
   Discourse::Application.routes.append do
     get "/itinerary/trips" => "itinerary#index",
         :defaults => {
