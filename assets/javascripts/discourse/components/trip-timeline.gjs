@@ -61,6 +61,35 @@ export default class TripTimeline extends Component {
     return t ? t.slice(0, 5) : "";
   };
 
+  // Compact "HH:MM ZONE" string. We truncate the IANA name to the
+  // city after the final "/" so the timeline doesn't get noisy with
+  // "America/Los_Angeles" everywhere — "Los_Angeles" is enough
+  // signal for the user reading it.
+  formatTimeWithZone = (iso, tz) => {
+    const time = this.formatTime(iso);
+    if (!time) {
+      return "";
+    }
+    if (!tz) {
+      return time;
+    }
+    const short = tz.split("/").pop().replaceAll("_", " ");
+    return `${time} ${short}`;
+  };
+
+  // For flights and other cross-tz items, show "08:00 Los Angeles
+  // → 11:15 New York" so the traveler sees both ends in local time.
+  // For same-tz items, just the start.
+  formatItemTime = (item) => {
+    const startTz = item.start_timezone;
+    const endTz = item.end_timezone;
+    const startStr = this.formatTimeWithZone(item.starts_at, startTz);
+    if (!item.ends_at || !endTz || endTz === startTz) {
+      return startStr;
+    }
+    return `${startStr} → ${this.formatTimeWithZone(item.ends_at, endTz)}`;
+  };
+
   <template>
     <div class="itinerary-trip">
       <header class="itinerary-trip__header">
@@ -112,7 +141,7 @@ export default class TripTimeline extends Component {
               <ul class="itinerary-day__items">
                 {{#each day.items as |item|}}
                   <li class="itinerary-item itinerary-item--{{item.item_type}}">
-                    <span class="itinerary-item__time">{{this.formatTime item.starts_at}}</span>
+                    <span class="itinerary-item__time">{{this.formatItemTime item}}</span>
                     <span class="itinerary-item__type">{{item.item_type}}</span>
                     <a class="itinerary-item__title" href={{item.url}}>{{item.title}}</a>
                     {{#if item.origin}}

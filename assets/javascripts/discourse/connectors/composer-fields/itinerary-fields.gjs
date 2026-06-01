@@ -35,6 +35,7 @@ export default class ItineraryFields extends Component {
   }
 
   @service siteSettings;
+  @service currentUser;
 
   // Local mirror of the item type so the conditional getters (showsRoute,
   // showsLocation, etc.) re-evaluate when the user picks a new type.
@@ -45,6 +46,28 @@ export default class ItineraryFields extends Component {
   @tracked availableTrips = [];
   @tracked tripsLoaded = false;
   lastSynthesizedBody = "";
+
+  // Full IANA timezone list, used to populate the start/end timezone
+  // dropdowns. Intl.supportedValuesOf is available in every browser
+  // Discourse supports and returns the canonical list in lexical
+  // order, which is fine for our purposes.
+  get timezoneOptions() {
+    if (typeof Intl?.supportedValuesOf !== "function") {
+      return [];
+    }
+    return Intl.supportedValuesOf("timeZone");
+  }
+
+  // Default timezone for new items. Prefer the user's Discourse
+  // profile setting; fall back to the browser's. Used to prefill
+  // both start and end tz when the user picks an item type, so the
+  // common case (a hotel in the user's home tz) requires no input.
+  get defaultTimezone() {
+    return (
+      this.currentUser?.user_option?.timezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone
+    );
+  }
 
   constructor() {
     super(...arguments);
@@ -243,8 +266,34 @@ export default class ItineraryFields extends Component {
     if (newType === "trip" || newType === null) {
       this.composer.set("itinerary_parent_trip_id", null);
     }
+    // Prefill start/end timezone from the user's profile/browser
+    // when the user first picks an item type. Both fields default to
+    // the same zone — flights get edited to differ explicitly. We
+    // only prefill empty values so editing an existing topic keeps
+    // its stored zones.
+    if (newType) {
+      const tz = this.defaultTimezone;
+      if (!this.composer.itinerary_start_timezone) {
+        this.composer.set("itinerary_start_timezone", tz);
+      }
+      if (!this.composer.itinerary_end_timezone) {
+        this.composer.set("itinerary_end_timezone", tz);
+      }
+    }
     this.syncBodyClass();
     this.synthesizeTitle();
+  }
+
+  @action
+  setStartTimezone(e) {
+    this.composer.set("itinerary_start_timezone", e.target.value || null);
+    this.syncRawBody();
+  }
+
+  @action
+  setEndTimezone(e) {
+    this.composer.set("itinerary_end_timezone", e.target.value || null);
+    this.syncRawBody();
   }
 
   @action
@@ -411,6 +460,30 @@ export default class ItineraryFields extends Component {
       {{/if}}
 
       {{#if this.itemType}}
+        <div class="itinerary-row">
+          <label>
+            Start timezone
+            <select {{on "change" this.setStartTimezone}}>
+              {{#each this.timezoneOptions as |tz|}}
+                <option value={{tz}} selected={{eq this.composer.itinerary_start_timezone tz}}>
+                  {{tz}}
+                </option>
+              {{/each}}
+            </select>
+          </label>
+
+          <label>
+            End timezone
+            <select {{on "change" this.setEndTimezone}}>
+              {{#each this.timezoneOptions as |tz|}}
+                <option value={{tz}} selected={{eq this.composer.itinerary_end_timezone tz}}>
+                  {{tz}}
+                </option>
+              {{/each}}
+            </select>
+          </label>
+        </div>
+
         <div class="itinerary-row">
           <label>
             Starts at
