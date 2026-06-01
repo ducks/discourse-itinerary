@@ -9,7 +9,7 @@ describe ItineraryController, type: :request do
   before { SiteSetting.itinerary_enabled = true }
 
   def trip(starts_at: "2026-09-20", category: self.category, title: nil)
-    attrs = { category: category, title: title || "Itinerary trip fixture" }
+    attrs = { category: category, title: title || "Itinerary trip fixture #{SecureRandom.hex(4)}" }
     topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -20,7 +20,8 @@ describe ItineraryController, type: :request do
   end
 
   def item(parent_trip:, starts_at:, item_type: "flight", **extra)
-    topic = Fabricate(:topic, category: category, title: "Itinerary item fixture")
+    topic =
+      Fabricate(:topic, category: category, title: "Itinerary item fixture #{SecureRandom.hex(4)}")
     topic.custom_fields["itinerary_item_type"] = item_type
     topic.custom_fields["itinerary_parent_trip_id"] = parent_trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -112,7 +113,12 @@ describe ItineraryController, type: :request do
     end
 
     it "returns 404 when the topic exists but isn't a trip" do
-      flight = Fabricate(:topic, category: category, title: "Itinerary flight fixture")
+      flight =
+        Fabricate(
+          :topic,
+          category: category,
+          title: "Itinerary flight fixture #{SecureRandom.hex(4)}",
+        )
       flight.custom_fields["itinerary_item_type"] = "flight"
       flight.save_custom_fields
 

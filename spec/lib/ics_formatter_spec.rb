@@ -15,7 +15,8 @@ describe DiscourseItinerary::IcsFormatter do
   end
 
   def make_item(trip:, starts_at:, **fields)
-    topic = Fabricate(:topic, category: category, title: "Itinerary item fixture")
+    topic =
+      Fabricate(:topic, category: category, title: "Itinerary item fixture #{SecureRandom.hex(4)}")
     topic.custom_fields["itinerary_parent_trip_id"] = trip.id
     topic.custom_fields["itinerary_starts_at"] = starts_at
     fields.each { |k, v| topic.custom_fields["itinerary_#{k}"] = v }
@@ -78,7 +79,12 @@ describe DiscourseItinerary::IcsFormatter do
     end
 
     it "skips items without a starts_at value" do
-      note = Fabricate(:topic, category: category, title: "Itinerary note fixture")
+      note =
+        Fabricate(
+          :topic,
+          category: category,
+          title: "Itinerary note fixture #{SecureRandom.hex(4)}",
+        )
       note.custom_fields["itinerary_parent_trip_id"] = trip.id
       note.custom_fields["itinerary_item_type"] = "note"
       note.save_custom_fields
