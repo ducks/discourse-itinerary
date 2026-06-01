@@ -124,19 +124,7 @@ after_initialize do
     Rails.logger.warn("discourse-itinerary: failed to provision default category: #{e.message}")
   end
 
-  # Prepend rather than append so our routes win against any
-  # Discourse catch-all (the main app has wildcard fallbacks that
-  # would otherwise serve the SPA shell for /itinerary/trips/:id/ics
-  # before our dedicated export route gets a chance to match).
-  Rails.application.config.after_initialize do
-    matching = Rails.application.routes.routes.select { |r| r.path.spec.to_s.include?("itinerary") }
-    puts("ITINERARY_DEBUG routes touching itinerary:")
-    matching.each do |r|
-      puts("  #{r.verb} #{r.path.spec} -> #{r.defaults.inspect} reqs=#{r.constraints.inspect}")
-    end
-  end
-
-  Discourse::Application.routes.prepend do
+  Discourse::Application.routes.append do
     get "/itinerary/trips" => "itinerary#index",
         :defaults => {
           format: :json,
@@ -153,20 +141,10 @@ after_initialize do
           id: /\d+/,
         }
 
-    # Calendar download for one trip. The URL deliberately avoids a
-    # `.ics` extension because Rails' route system treats dotted
-    # endings as format extensions, which fights the page glob below
-    # (see rails/rails#20264). Using a slash-separated path takes
-    # routing out of the equation entirely; the response sets a
-    # `Content-Disposition: attachment; filename=...ics` header so
-    # the downloaded file still has the right extension on disk.
-    get "/itinerary/trips/:id/ics" => "itinerary#export",
-        :defaults => {
-          format: :ics,
-        },
-        :constraints => {
-          id: /\d+/,
-        }
+    # Calendar download for one trip. URL avoids a `.ics` extension
+    # because Rails' format-extension parsing fights the page glob
+    # below. Content-Disposition sets the downloaded filename.
+    get "/itinerary/trips/:id/ics" => "itinerary#export"
 
     # HTML entrypoints for the Ember client routes. Rails matches
     # these URLs and returns Discourse's app shell; Ember then
