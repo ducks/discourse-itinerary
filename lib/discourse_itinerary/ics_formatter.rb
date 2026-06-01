@@ -7,12 +7,14 @@ module DiscourseItinerary
   # a `starts_at` value. Items without a start time (a bare note, say)
   # are skipped — they have no place on a calendar.
   #
-  # Each event's start/end is tagged with a TZID referring to a
-  # VTIMEZONE block emitted at the top of the calendar. Times in the
-  # JOBL are local wall-clock times in the named zone, so importing
-  # calendars resolve them via their own IANA timezone database keyed
-  # on the TZID. Items without a timezone (legacy data from before
-  # the timezone fields were required) fall back to floating times.
+  # When an item has timezones set, the start/end is tagged with a
+  # TZID referring to a VTIMEZONE block emitted at the top of the
+  # calendar. Stored times are local wall-clock in the named zone,
+  # so importing calendars resolve them via their own IANA timezone
+  # database keyed on the TZID. Items without a timezone fall back
+  # to floating times — the composer prefills timezones for new
+  # items but doesn't enforce them on the server, so legacy or
+  # API-created items without zones still export cleanly.
   class IcsFormatter
     PRODID = "-//Discourse Itinerary//EN"
     LINE_TERMINATOR = "\r\n"

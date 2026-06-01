@@ -44,15 +44,6 @@ module ::DiscourseItinerary
     "itinerary_status" => :string,
   }.freeze
 
-  # Fields that require a non-blank value when authoring or editing
-  # an itinerary topic. Item-type is the gate (a non-itinerary topic
-  # never touches these); the rest are required because timezone-
-  # less items break the calendar export and weren't here from v1.
-  REQUIRED_FIELDS = %w[
-    itinerary_item_type
-    itinerary_start_timezone
-    itinerary_end_timezone
-  ].freeze
 
   # Allowed values for `itinerary_item_type`. `trip` is the container
   # type; everything else is an item that belongs to a trip via
@@ -106,19 +97,6 @@ module ::DiscourseItinerary
     @valid_timezones.include?(id)
   end
 
-  # Ensures the topic about to be saved has every required itinerary
-  # field set. Called from both the creation event and the
-  # PostRevisor track_topic_field block so the rule applies to new
-  # topics and edits alike. Raises Discourse::InvalidParameters so
-  # the composer surfaces the error to the user instead of silently
-  # writing a broken record.
-  def self.require_required_fields!(values)
-    missing = REQUIRED_FIELDS.select { |f| values[f].to_s.strip.empty? }
-    return if missing.empty?
-    raise Discourse::InvalidParameters.new(
-      "Itinerary topic missing required fields: #{missing.join(", ")}"
-    )
-  end
 end
 
 after_initialize do
@@ -199,14 +177,6 @@ after_initialize do
       normalized = DiscourseItinerary.normalize_field(field, value)
       tc.record_change(field, tc.topic.custom_fields[field], normalized)
       tc.topic.custom_fields[field] = normalized
-
-      # On edit, an itinerary topic must still carry the full
-      # required set after this field is applied. Reading the
-      # already-mutated custom_fields hash gives us the post-edit
-      # state and catches blanking out of a required field.
-      if tc.topic.custom_fields["itinerary_item_type"].present?
-        DiscourseItinerary.require_required_fields!(tc.topic.custom_fields)
-      end
     end
   end
 
@@ -224,30 +194,9 @@ after_initialize do
     provided = DiscourseItinerary::CUSTOM_FIELDS.keys.select { |f| indifferent.key?(f) }
     next if provided.empty?
 
-    normalized = {}
     provided.each do |field|
-      normalized[field] = DiscourseItinerary.normalize_field(field, indifferent[field])
+      topic.custom_fields[field] = DiscourseItinerary.normalize_field(field, indifferent[field])
     end
-
-    # An itinerary topic must carry the full required set. Raising
-    # here doesn't roll back the topic (DiscourseEvent swallows
-    # handler exceptions), so we instead skip writing any itinerary
-    # custom fields — the topic survives as a plain topic and the
-    # composer surfaces no usable itinerary view, which is the
-    # safe degraded state. The frontend prevents this from happening
-    # for real users by gating Submit on the required fields.
-    if normalized["itinerary_item_type"].present?
-      missing = DiscourseItinerary::REQUIRED_FIELDS.select { |f| normalized[f].to_s.strip.empty? }
-      if missing.any?
-        Rails.logger.warn(
-          "discourse-itinerary: skipping itinerary field save for topic #{topic.id} — " \
-            "missing required fields: #{missing.join(", ")}"
-        )
-        next
-      end
-    end
-
-    normalized.each { |field, value| topic.custom_fields[field] = value }
     topic.save_custom_fields
   end
 
