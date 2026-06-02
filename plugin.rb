@@ -124,6 +124,15 @@ after_initialize do
     Rails.logger.warn("discourse-itinerary: failed to provision default category: #{e.message}")
   end
 
+  Rails.application.config.after_initialize do
+    puts("ITINERARY_DEBUG all itinerary routes registered:")
+    Rails.application.routes.routes.each do |r|
+      spec = r.path.spec.to_s
+      next unless spec.include?("itinerary") || spec.include?("/t/") || spec == "/*url(.:format)"
+      puts("  #{r.verb} #{spec} => #{r.defaults[:controller]}##{r.defaults[:action]}")
+    end
+  end
+
   Discourse::Application.routes.append do
     get "/itinerary/trips" => "itinerary#index",
         :defaults => {
