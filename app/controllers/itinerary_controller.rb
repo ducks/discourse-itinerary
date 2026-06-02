@@ -73,7 +73,13 @@ class ::ItineraryController < ::ApplicationController
   # add) that's fine. Per-user subscribe tokens are a follow-up.
   def export
     trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
-    raise Discourse::NotFound unless trip
+    # Render head :not_found directly rather than raising
+    # Discourse::NotFound. The application controller's rescue for
+    # NotFound serves the SPA shell with text/html and HTTP 200 for
+    # non-JSON, non-xhr requests, which is exactly the wrong thing
+    # for a calendar-export endpoint that wants a real 404 the
+    # subscribing client can act on.
+    return head :not_found unless trip
 
     ics = DiscourseItinerary::IcsFormatter.call(trip: trip, items: trip.items)
 
