@@ -156,7 +156,7 @@ describe ItineraryController, type: :request do
       )
 
       sign_in(user)
-      get "/itinerary/trips/#{t.id}/ics", headers: { "Accept" => "text/calendar" }
+      get "/itinerary/trips/#{t.id}/ics"
 
       expect(response.status).to eq(200)
       expect(response.media_type).to eq("text/calendar")
@@ -168,7 +168,7 @@ describe ItineraryController, type: :request do
 
     it "returns 404 for a missing trip" do
       sign_in(user)
-      get "/itinerary/trips/9999999/ics", headers: { "Accept" => "text/calendar" }
+      get "/itinerary/trips/9999999/ics"
       expect(response.status).to eq(404)
     end
 
@@ -177,7 +177,7 @@ describe ItineraryController, type: :request do
       hidden = trip(category: private_category)
 
       sign_in(user)
-      get "/itinerary/trips/#{hidden.id}/ics", headers: { "Accept" => "text/calendar" }
+      get "/itinerary/trips/#{hidden.id}/ics"
       expect(response.status).to eq(404)
     end
   end

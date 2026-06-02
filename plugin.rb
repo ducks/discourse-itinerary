@@ -146,13 +146,13 @@ after_initialize do
     # below. Content-Disposition sets the downloaded filename.
     get "/itinerary/trips/:id/ics" => "itinerary#export"
 
-    # HTML entrypoints for the Ember client routes. Rails matches
-    # these URLs and returns Discourse's app shell; Ember then
-    # takes over and resolves the path client-side via the plugin's
-    # route map. Without these, Rails 404s before the bootstrap HTML
-    # reaches the browser.
+    # HTML entrypoint for the Ember client. Matches only the bare
+    # /itinerary path. Deep-linking into trip pages is left to the
+    # client-side router via history.pushState - the Discourse SPA
+    # shell is already loaded by the time a user navigates within
+    # /itinerary, so the only path that needs a server route is the
+    # cold-load entry point.
     get "/itinerary" => "itinerary#page", :constraints => { format: :html }
-    get "/itinerary/*path" => "itinerary#page", :constraints => { format: :html }
   end
 
   # ---- Authoring: persist itinerary fields from the composer ----
