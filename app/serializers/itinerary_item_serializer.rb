@@ -16,7 +16,9 @@ class ItineraryItemSerializer < ApplicationSerializer
              :name,
              :location,
              :confirmation_code,
-             :status
+             :status,
+             :cost_amount,
+             :cost_currency
 
   def url
     "/t/#{object.slug}/#{object.id}"
@@ -57,6 +59,12 @@ class ItineraryItemSerializer < ApplicationSerializer
   end
   def status
     cf("itinerary_status")
+  end
+  def cost_amount
+    cf("itinerary_cost_amount")
+  end
+  def cost_currency
+    cf("itinerary_cost_currency")
   end
 
   private

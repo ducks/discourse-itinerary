@@ -153,6 +153,14 @@ export default class ItineraryFields extends Component {
     return ["flight", "train", "hotel", "event"].includes(this.itemType);
   }
 
+  // Cost is meaningful for anything that's paid for. Notes are free-
+  // form scratchpad entries and trips are the container, not a
+  // purchase - skip cost for both. Everything else (flight, train,
+  // hotel, event, transfer) commonly has a price worth recording.
+  get showsCost() {
+    return ["flight", "train", "hotel", "event", "transfer"].includes(this.itemType);
+  }
+
   async loadTrips() {
     // Always scope to the configured itinerary category. We don't
     // rely on the composer's categoryId because at constructor time
@@ -249,6 +257,12 @@ export default class ItineraryFields extends Component {
     push("Location", this.composer.itinerary_location);
     push("Confirmation", this.composer.itinerary_confirmation_code);
     push("Status", this.composer.itinerary_status);
+    if (this.composer.itinerary_cost_amount && this.composer.itinerary_cost_currency) {
+      push(
+        "Cost",
+        `${this.composer.itinerary_cost_amount} ${this.composer.itinerary_cost_currency}`,
+      );
+    }
 
     const body = lines.length ? lines.join("\n") : "";
     this.lastSynthesizedBody = body;
@@ -400,6 +414,23 @@ export default class ItineraryFields extends Component {
   @action
   setConfirmationCode(e) {
     this.composer.set("itinerary_confirmation_code", e.target.value || null);
+    this.syncRawBody();
+  }
+
+  // Strip commas before persisting so users can paste locale-
+  // formatted values ("1,240.50") and the stored form stays the
+  // unambiguous decimal the server validator expects.
+  @action
+  setCostAmount(e) {
+    const raw = (e.target.value || "").replace(/,/g, "");
+    this.composer.set("itinerary_cost_amount", raw || null);
+    this.syncRawBody();
+  }
+
+  @action
+  setCostCurrency(e) {
+    const raw = (e.target.value || "").toUpperCase();
+    this.composer.set("itinerary_cost_currency", raw || null);
     this.syncRawBody();
   }
 
@@ -592,6 +623,32 @@ export default class ItineraryFields extends Component {
               />
             </label>
           {{/if}}
+        </div>
+      {{/if}}
+
+      {{#if this.showsCost}}
+        <div class="itinerary-row">
+          <label>
+            Cost
+            <input
+              type="text"
+              inputmode="decimal"
+              value={{this.composer.itinerary_cost_amount}}
+              placeholder="842.50"
+              {{on "input" this.setCostAmount}}
+            />
+          </label>
+
+          <label>
+            Currency
+            <input
+              type="text"
+              maxlength="3"
+              value={{this.composer.itinerary_cost_currency}}
+              placeholder="USD"
+              {{on "input" this.setCostCurrency}}
+            />
+          </label>
         </div>
       {{/if}}
     </details>

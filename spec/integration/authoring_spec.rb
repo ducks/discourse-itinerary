@@ -102,4 +102,56 @@ describe "Itinerary authoring" do
     post = creator.create
     expect(post.topic.custom_fields["itinerary_item_type"]).to be_nil
   end
+
+  it "accepts a well-formed cost amount and currency" do
+    creator =
+      PostCreator.new(
+        user,
+        title: "Flight with a recorded cost",
+        raw: "Body.",
+        category: category.id,
+        itinerary_item_type: "flight",
+        itinerary_start_timezone: "America/Los_Angeles",
+        itinerary_end_timezone: "Europe/Madrid",
+        itinerary_cost_amount: "842.50",
+        itinerary_cost_currency: "USD",
+      )
+    post = creator.create
+    expect(post.topic.custom_fields["itinerary_cost_amount"]).to eq("842.50")
+    expect(post.topic.custom_fields["itinerary_cost_currency"]).to eq("USD")
+  end
+
+  it "rejects a cost amount that contains a comma separator" do
+    creator =
+      PostCreator.new(
+        user,
+        title: "Locale-formatted cost should fail",
+        raw: "Body.",
+        category: category.id,
+        itinerary_item_type: "hotel",
+        itinerary_start_timezone: "Europe/Madrid",
+        itinerary_end_timezone: "Europe/Madrid",
+        itinerary_cost_amount: "1,240.50",
+        itinerary_cost_currency: "EUR",
+      )
+    post = creator.create
+    expect(post.topic.custom_fields["itinerary_cost_amount"]).to be_nil
+  end
+
+  it "rejects a lowercase currency code" do
+    creator =
+      PostCreator.new(
+        user,
+        title: "Lowercase currency should fail",
+        raw: "Body.",
+        category: category.id,
+        itinerary_item_type: "hotel",
+        itinerary_start_timezone: "Europe/Madrid",
+        itinerary_end_timezone: "Europe/Madrid",
+        itinerary_cost_amount: "100.00",
+        itinerary_cost_currency: "eur",
+      )
+    post = creator.create
+    expect(post.topic.custom_fields["itinerary_cost_currency"]).to be_nil
+  end
 end

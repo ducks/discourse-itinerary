@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.8.0
+# version: 0.9.0
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
@@ -42,6 +42,14 @@ module ::DiscourseItinerary
     "itinerary_location" => :string,
     "itinerary_confirmation_code" => :string,
     "itinerary_status" => :string,
+    # Cost is stored as two strings: a decimal amount (e.g. "842.50")
+    # and a 3-letter ISO 4217 currency code (e.g. "USD"). Amount is
+    # a string rather than a numeric type so we don't have to deal
+    # with float precision on read-back; the serializer parses it
+    # only when rendering trip totals. Both fields are optional - an
+    # item without a recorded cost simply omits both.
+    "itinerary_cost_amount" => :string,
+    "itinerary_cost_currency" => :string,
   }.freeze
 
   # Allowed values for `itinerary_item_type`. `trip` is the container
@@ -81,6 +89,29 @@ module ::DiscourseItinerary
     when "itinerary_start_timezone", "itinerary_end_timezone"
       unless valid_timezone?(presented)
         raise Discourse::InvalidParameters.new("Unknown IANA timezone: #{presented.inspect}")
+      end
+      presented
+    when "itinerary_cost_amount"
+      # Accept any decimal-looking value; the serializer parses it
+      # later. Negative costs are allowed (a refund could be modeled
+      # this way) but commas are rejected to keep the storage form
+      # unambiguous - the composer is responsible for stripping
+      # locale formatting before sending.
+      unless presented =~ /\A-?\d+(\.\d+)?\z/
+        raise Discourse::InvalidParameters.new(
+                "Invalid itinerary_cost_amount: #{presented.inspect} (expected decimal like '842.50')",
+              )
+      end
+      presented
+    when "itinerary_cost_currency"
+      # ISO 4217 three-letter codes are uppercase ASCII. We don't
+      # validate against a full list - any well-formed three-letter
+      # code is accepted, including codes added after this version
+      # shipped.
+      unless presented =~ /\A[A-Z]{3}\z/
+        raise Discourse::InvalidParameters.new(
+                "Invalid itinerary_cost_currency: #{presented.inspect} (expected 3 uppercase letters like 'USD')",
+              )
       end
       presented
     else
