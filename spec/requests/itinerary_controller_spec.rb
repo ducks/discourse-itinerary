@@ -191,4 +191,67 @@ describe ItineraryController, type: :request do
       expect(response.status).to eq(404)
     end
   end
+
+  describe "POST /itinerary/trips/:id/share" do
+    it "creates and returns a share token on first call" do
+      t = trip
+      sign_in(user)
+      post "/itinerary/trips/#{t.id}/share"
+
+      expect(response.status).to eq(200)
+      body = response.parsed_body
+      expect(body["token"]).to be_present
+      expect(body["url"]).to include("/itinerary/shared/")
+      expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
+    end
+
+    it "returns the same token on repeat calls" do
+      t = trip
+      sign_in(user)
+      post "/itinerary/trips/#{t.id}/share"
+      first = response.parsed_body["token"]
+      post "/itinerary/trips/#{t.id}/share"
+      second = response.parsed_body["token"]
+
+      expect(first).to eq(second)
+      expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
+    end
+  end
+
+  describe "POST /itinerary/trips/:id/share/regenerate" do
+    it "rotates the token, invalidating the previous one" do
+      t = trip
+      sign_in(user)
+      post "/itinerary/trips/#{t.id}/share"
+      first = response.parsed_body["token"]
+      post "/itinerary/trips/#{t.id}/share/regenerate"
+      second = response.parsed_body["token"]
+
+      expect(second).not_to eq(first)
+      expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
+      get "/itinerary/shared/#{first}"
+      expect(response.status).to eq(404)
+    end
+  end
+
+  describe "GET /itinerary/shared/:token" do
+    it "renders the read-only view without a session" do
+      t = trip
+      item(parent_trip: t, starts_at: "2026-09-20T14:30", item_type: "flight")
+      sign_in(user)
+      post "/itinerary/trips/#{t.id}/share"
+      token = response.parsed_body["token"]
+
+      reset_session
+      get "/itinerary/shared/#{token}"
+
+      expect(response.status).to eq(200)
+      expect(response.body).to include(t.title)
+    end
+
+    it "404s on an unknown token" do
+      get "/itinerary/shared/notarealtoken"
+      expect(response.status).to eq(404)
+    end
+  end
 end

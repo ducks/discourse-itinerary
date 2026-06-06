@@ -273,6 +273,32 @@ body.composer-itinerary-item-mode {
   }
 }
 
+.itinerary-trip__share-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary-very-low);
+  border: 1px solid var(--primary-low);
+  border-radius: 4px;
+
+  label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    font-size: 0.85em;
+    color: var(--primary-medium);
+  }
+
+  input {
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.4rem;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+}
+
 .itinerary-trip__totals {
   display: flex;
   align-items: baseline;

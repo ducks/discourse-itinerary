@@ -3,6 +3,13 @@
 class ::ItineraryController < ::ApplicationController
   requires_plugin DiscourseItinerary::PLUGIN_NAME
 
+  # The public share view doesn't require a logged-in session - the
+  # whole point is to hand someone outside Discourse a URL that just
+  # works. Skip the auth checks Discourse normally enforces.
+  skip_before_action :check_xhr, only: %i[shared]
+  skip_before_action :preload_json, only: %i[shared]
+  skip_before_action :redirect_to_login_if_required, only: %i[shared]
+
   # GET /itinerary  and  GET /itinerary/:trip_id  (HTML)
   #
   # Serves Discourse's app shell so the Ember client can take over and
@@ -80,5 +87,71 @@ class ::ItineraryController < ::ApplicationController
     filename = "#{trip.slug.presence || "trip-#{trip.id}"}.ics"
     response.headers["Content-Disposition"] = "attachment; filename=\"#{filename}\""
     render plain: ics, content_type: "text/calendar; charset=utf-8"
+  end
+
+  # POST /itinerary/trips/:id/share
+  #
+  # Returns the existing share token for this trip, creating one if
+  # the trip has never been shared. Idempotent on repeat clicks.
+  # Requires the caller can see the trip; the controller treats
+  # "can see the trip" as "may produce a share URL for it" - same
+  # bar as the existing edit / view flows.
+  def share
+    trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
+    raise Discourse::NotFound unless trip
+
+    token = ItineraryShareToken.for_topic(trip.id) || ItineraryShareToken.create_for_topic!(trip.id)
+
+    render_json_dump(token: token.token, url: share_url(token.token))
+  end
+
+  # POST /itinerary/trips/:id/share/regenerate
+  #
+  # Replaces the existing token with a new one, invalidating any
+  # previously distributed URL. Same auth bar as `share`.
+  def regenerate_share
+    trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
+    raise Discourse::NotFound unless trip
+
+    token = ItineraryShareToken.regenerate_for_topic!(trip.id)
+    render_json_dump(token: token.token, url: share_url(token.token))
+  end
+
+  # GET /itinerary/shared/:token
+  #
+  # The public read-only view. No session required - the token in
+  # the URL is the only access control. Renders a minimal HTML page
+  # (no Ember bootstrap) so the URL loads instantly and works in
+  # contexts that don't carry browser cookies (forwarded email,
+  # bookmarked link, etc).
+  #
+  # Hidden vs the authenticated view: cost fields, confirmation
+  # codes, the topic creator, and links back into Discourse. The
+  # share recipient gets the itinerary, not a back-door into the
+  # forum.
+  def shared
+    token_row = ItineraryShareToken.find_by(token: params[:token])
+    return head :not_found unless token_row
+
+    # Use an admin guardian for the topic lookup since the share URL
+    # is supposed to work without a session and the trip itself may
+    # be in a category the anonymous user can't see. The token *is*
+    # the access grant.
+    trip =
+      DiscourseItinerary::Itinerary.find(
+        token_row.topic_id,
+        guardian: Guardian.new(Discourse.system_user),
+      )
+    return head :not_found unless trip
+
+    @trip = trip
+    @items = trip.items
+    render "shared", layout: "no_ember"
+  end
+
+  private
+
+  def share_url(token)
+    "#{Discourse.base_url}/itinerary/shared/#{token}"
   end
 end

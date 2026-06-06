@@ -1,7 +1,9 @@
 import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
+import { ajax } from "discourse/lib/ajax";
 import avatar from "discourse/helpers/avatar";
 import { shortDate } from "discourse/lib/formatter";
 
@@ -16,6 +18,35 @@ export default class TripTimeline extends Component {
   @service composer;
   @service site;
   @service siteSettings;
+
+  @tracked shareUrl = null;
+
+  // Fetches (or creates) a share token for this trip and exposes
+  // the resulting public URL so the template can show it. Repeat
+  // clicks reuse the existing token; for rotation use the explicit
+  // regenerateShare action.
+  @action
+  async share() {
+    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share`, {
+      type: "POST",
+    });
+    this.shareUrl = result.url;
+  }
+
+  @action
+  async regenerateShare() {
+    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share/regenerate`, {
+      type: "POST",
+    });
+    this.shareUrl = result.url;
+  }
+
+  @action
+  copyShareUrl() {
+    if (this.shareUrl) {
+      navigator.clipboard?.writeText(this.shareUrl);
+    }
+  }
 
   // Opens the composer with the itinerary category and seeds the
   // parent-trip id so a new item lands under this trip. Item-type
@@ -159,6 +190,14 @@ export default class TripTimeline extends Component {
             </a>
             <button
               type="button"
+              class="btn btn-default itinerary-trip__share"
+              title="Get a read-only public URL anyone can view without a Discourse account."
+              {{on "click" this.share}}
+            >
+              Share
+            </button>
+            <button
+              type="button"
               class="btn btn-primary itinerary-trip__add"
               {{on "click" this.addLeg}}
             >
@@ -166,6 +205,17 @@ export default class TripTimeline extends Component {
             </button>
           </div>
         </div>
+
+        {{#if this.shareUrl}}
+          <div class="itinerary-trip__share-panel">
+            <label>
+              <span class="itinerary-trip__share-label">Public read-only link</span>
+              <input type="text" readonly value={{this.shareUrl}} />
+            </label>
+            <button type="button" class="btn btn-default" {{on "click" this.copyShareUrl}}>Copy</button>
+            <button type="button" class="btn btn-default" {{on "click" this.regenerateShare}}>Regenerate</button>
+          </div>
+        {{/if}}
         <div class="itinerary-trip__meta">
           {{#if @trip.creator}}
             <span class="itinerary-trip__creator">
