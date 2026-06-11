@@ -2,7 +2,7 @@
 
 # name: discourse-itinerary
 # about: Renders Discourse topics in a category as a chronological travel itinerary.
-# version: 0.9.0
+# version: 0.10.0
 # authors: Jake Goldsborough
 # url: https://github.com/ducks/discourse-itinerary
 
@@ -143,6 +143,7 @@ after_initialize do
   require_relative "lib/discourse_itinerary/trip_item_finder"
   require_relative "lib/discourse_itinerary/category_provisioner"
   require_relative "lib/discourse_itinerary/ics_formatter"
+  require_relative "app/models/itinerary_share_token"
   require_relative "app/serializers/trip_serializer"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
@@ -189,6 +190,20 @@ after_initialize do
         },
         :constraints => {
           id: /\d+/,
+        }
+
+    # Share-by-link endpoints. POST creates or returns the existing
+    # share token; the regenerate variant rotates it. The public
+    # GET reads the token out of the URL and renders a read-only
+    # view with no session required.
+    post "/itinerary/trips/:id/share" => "itinerary#share", :constraints => { id: /\d+/ }
+    post "/itinerary/trips/:id/share/regenerate" => "itinerary#regenerate_share",
+         :constraints => {
+           id: /\d+/,
+         }
+    get "/itinerary/shared/:token" => "itinerary#shared",
+        :constraints => {
+          token: /[A-Za-z0-9_-]+/,
         }
 
     # HTML entrypoints for the Ember client routes. Rails matches
