@@ -3,7 +3,8 @@ import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
-import avatar from "discourse/helpers/avatar";
+import dAvatar from "discourse/ui-kit/helpers/d-avatar";
+import { i18n } from "discourse-i18n";
 import { shortItineraryDate } from "../lib/itinerary-date";
 import { openItineraryComposer } from "../lib/open-itinerary-composer";
 
@@ -37,13 +38,13 @@ export default class TripList extends Component {
   <template>
     <div class="itinerary-trip-list">
       <div class="itinerary-trip-list__header">
-        <h2>Trips</h2>
+        <h2>{{i18n "itinerary.trips"}}</h2>
         <button
           type="button"
           class="btn btn-primary itinerary-trip-list__add"
           {{on "click" this.addTrip}}
         >
-          + Add trip
+          {{i18n "itinerary.add_trip"}}
         </button>
       </div>
 
@@ -55,14 +56,14 @@ export default class TripList extends Component {
                 <span class="itinerary-trips__title">{{trip.title}}</span>
                 {{#if trip.creator}}
                   <span class="itinerary-trips__creator">
-                    {{avatar trip.creator imageSize="small"}}
+                    {{dAvatar trip.creator imageSize="small"}}
                     <span class="itinerary-trips__creator-name">{{trip.creator.username}}</span>
                   </span>
                 {{/if}}
                 <span class="itinerary-trips__dates">
                   {{this.formatDate trip.starts_at}}
                   {{#if trip.ends_at}}
-                    to {{this.formatDate trip.ends_at}}
+                    {{i18n "itinerary.to"}} {{this.formatDate trip.ends_at}}
                   {{/if}}
                 </span>
                 {{#if trip.location}}
@@ -74,7 +75,7 @@ export default class TripList extends Component {
         </ul>
       {{else}}
         <p class="itinerary-trips__empty">
-          No trips yet. Create a topic with type "Trip" to start one.
+          {{i18n "itinerary.no_trips"}}
         </p>
       {{/if}}
     </div>

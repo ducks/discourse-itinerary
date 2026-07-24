@@ -3,7 +3,7 @@
 // because the filename matches the `<plugin-slug>-route-map.js`
 // convention Discourse plugins use.
 export default function () {
-  this.route("itinerary", { path: "/itinerary" }, function () {
+  this.route("itinerary", function () {
     this.route("show", { path: "/:trip_id" });
   });
 }

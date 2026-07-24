@@ -5,6 +5,7 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { and, eq, or } from "discourse/truth-helpers";
+import { i18n } from "discourse-i18n";
 
 // Itinerary metadata inputs that appear in the composer when a new
 // topic is being authored or the OP is being edited. Mounted into the
@@ -47,6 +48,18 @@ export default class ItineraryFields extends Component {
   @tracked tripsLoaded = false;
   lastSynthesizedBody = "";
 
+  constructor() {
+    super(...arguments);
+    this.itemType = this.composer.itinerary_item_type;
+    this.loadTrips();
+    this.syncBodyClass();
+  }
+
+  willDestroy() {
+    super.willDestroy(...arguments);
+    document.body.classList.remove("composer-itinerary-item-mode");
+  }
+
   // Full IANA timezone list, used to populate the start/end timezone
   // dropdowns. Intl.supportedValuesOf is available in every browser
   // Discourse supports and returns the canonical list in lexical
@@ -69,13 +82,6 @@ export default class ItineraryFields extends Component {
     );
   }
 
-  constructor() {
-    super(...arguments);
-    this.itemType = this.composer.itinerary_item_type;
-    this.loadTrips();
-    this.syncBodyClass();
-  }
-
   // Adds a body class when the composer is in the itinerary category
   // AND the user is authoring an item (not a trip). SCSS hides the
   // standard title input under that class since we synthesize the
@@ -91,11 +97,6 @@ export default class ItineraryFields extends Component {
     } else {
       document.body.classList.remove("composer-itinerary-item-mode");
     }
-  }
-
-  willDestroy() {
-    super.willDestroy(...arguments);
-    document.body.classList.remove("composer-itinerary-item-mode");
   }
 
   get composer() {
@@ -441,32 +442,54 @@ export default class ItineraryFields extends Component {
   <template>
     {{#if this.inItineraryCategory}}
     <details class="itinerary-composer" open>
-      <summary>Itinerary item</summary>
+      <summary>{{i18n "itinerary.composer.summary"}}</summary>
 
       <div class="itinerary-row">
         <label>
-          Type
+          {{i18n "itinerary.composer.type"}}
           <select {{on "change" this.setItemType}}>
             <option value="" selected={{eq this.itemType undefined}}>—</option>
-            <option value="trip" selected={{eq this.itemType "trip"}}>Trip</option>
-            <option value="flight" selected={{eq this.itemType "flight"}}>Flight</option>
-            <option value="train" selected={{eq this.itemType "train"}}>Train</option>
-            <option value="hotel" selected={{eq this.itemType "hotel"}}>Hotel</option>
-            <option value="event" selected={{eq this.itemType "event"}}>Event</option>
-            <option value="transfer" selected={{eq this.itemType "transfer"}}>Transfer</option>
-            <option value="note" selected={{eq this.itemType "note"}}>Note</option>
+            <option value="trip" selected={{eq this.itemType "trip"}}>
+              {{i18n "itinerary.item_types.trip"}}
+            </option>
+            <option value="flight" selected={{eq this.itemType "flight"}}>
+              {{i18n "itinerary.item_types.flight"}}
+            </option>
+            <option value="train" selected={{eq this.itemType "train"}}>
+              {{i18n "itinerary.item_types.train"}}
+            </option>
+            <option value="hotel" selected={{eq this.itemType "hotel"}}>
+              {{i18n "itinerary.item_types.hotel"}}
+            </option>
+            <option value="event" selected={{eq this.itemType "event"}}>
+              {{i18n "itinerary.item_types.event"}}
+            </option>
+            <option value="transfer" selected={{eq this.itemType "transfer"}}>
+              {{i18n "itinerary.item_types.transfer"}}
+            </option>
+            <option value="note" selected={{eq this.itemType "note"}}>
+              {{i18n "itinerary.item_types.note"}}
+            </option>
           </select>
         </label>
 
         {{#if this.showsStatus}}
           <label>
-            Status
+            {{i18n "itinerary.composer.status"}}
             <select {{on "change" this.setStatus}}>
               <option value="" selected={{eq this.composer.itinerary_status undefined}}>—</option>
-              <option value="planned" selected={{eq this.composer.itinerary_status "planned"}}>Planned</option>
-              <option value="booked" selected={{eq this.composer.itinerary_status "booked"}}>Booked</option>
-              <option value="checked_in" selected={{eq this.composer.itinerary_status "checked_in"}}>Checked in</option>
-              <option value="completed" selected={{eq this.composer.itinerary_status "completed"}}>Completed</option>
+              <option value="planned" selected={{eq this.composer.itinerary_status "planned"}}>
+                {{i18n "itinerary.statuses.planned"}}
+              </option>
+              <option value="booked" selected={{eq this.composer.itinerary_status "booked"}}>
+                {{i18n "itinerary.statuses.booked"}}
+              </option>
+              <option value="checked_in" selected={{eq this.composer.itinerary_status "checked_in"}}>
+                {{i18n "itinerary.statuses.checked_in"}}
+              </option>
+              <option value="completed" selected={{eq this.composer.itinerary_status "completed"}}>
+                {{i18n "itinerary.statuses.completed"}}
+              </option>
             </select>
           </label>
         {{/if}}
@@ -475,10 +498,10 @@ export default class ItineraryFields extends Component {
       {{#if this.showsParentTrip}}
         <div class="itinerary-row">
           <label class="itinerary-parent-trip">
-            Trip
+            {{i18n "itinerary.composer.trip"}}
             {{#if (and this.tripsLoaded (eq this.availableTrips.length 0))}}
               <span class="itinerary-empty-trips">
-                No trips yet — create a Trip first
+                {{i18n "itinerary.composer.no_trips"}}
               </span>
             {{else}}
               <select {{on "change" this.setParentTripId}}>
@@ -497,7 +520,7 @@ export default class ItineraryFields extends Component {
       {{#if this.itemType}}
         <div class="itinerary-row">
           <label>
-            Start timezone
+            {{i18n "itinerary.composer.start_timezone"}}
             <select {{on "change" this.setStartTimezone}}>
               {{#each this.timezoneOptions as |tz|}}
                 <option value={{tz}} selected={{eq this.composer.itinerary_start_timezone tz}}>
@@ -508,7 +531,7 @@ export default class ItineraryFields extends Component {
           </label>
 
           <label>
-            End timezone
+            {{i18n "itinerary.composer.end_timezone"}}
             <select {{on "change" this.setEndTimezone}}>
               {{#each this.timezoneOptions as |tz|}}
                 <option value={{tz}} selected={{eq this.composer.itinerary_end_timezone tz}}>
@@ -521,7 +544,7 @@ export default class ItineraryFields extends Component {
 
         <div class="itinerary-row">
           <label>
-            Starts at
+            {{i18n "itinerary.composer.starts_at"}}
             <input
               type="date"
               value={{this.startsAtDate}}
@@ -531,7 +554,7 @@ export default class ItineraryFields extends Component {
 
           {{#unless this.isTrip}}
             <label>
-              Time
+              {{i18n "itinerary.composer.time"}}
               <input
                 type="time"
                 value={{this.startsAtTime}}
@@ -542,7 +565,7 @@ export default class ItineraryFields extends Component {
 
           {{#if this.showsEndsAt}}
             <label>
-              Ends at
+              {{i18n "itinerary.composer.ends_at"}}
               <input
                 type="date"
                 value={{this.endsAtDate}}
@@ -552,7 +575,7 @@ export default class ItineraryFields extends Component {
 
             {{#unless this.isTrip}}
               <label>
-                Time
+                {{i18n "itinerary.composer.time"}}
                 <input
                   type="time"
                   value={{this.endsAtTime}}
@@ -567,7 +590,7 @@ export default class ItineraryFields extends Component {
       {{#if this.showsRoute}}
         <div class="itinerary-row">
           <label>
-            Origin
+            {{i18n "itinerary.composer.origin"}}
             <input
               type="text"
               value={{this.composer.itinerary_origin}}
@@ -577,7 +600,7 @@ export default class ItineraryFields extends Component {
           </label>
 
           <label>
-            Destination
+            {{i18n "itinerary.composer.destination"}}
             <input
               type="text"
               value={{this.composer.itinerary_destination}}
@@ -591,7 +614,7 @@ export default class ItineraryFields extends Component {
       {{#if this.showsName}}
         <div class="itinerary-row">
           <label>
-            Name
+            {{i18n "itinerary.composer.name"}}
             <input
               type="text"
               value={{this.composer.itinerary_name}}
@@ -606,7 +629,7 @@ export default class ItineraryFields extends Component {
         <div class="itinerary-row">
           {{#if this.showsLocation}}
             <label>
-              Location
+              {{i18n "itinerary.composer.location"}}
               <input
                 type="text"
                 value={{this.composer.itinerary_location}}
@@ -618,7 +641,7 @@ export default class ItineraryFields extends Component {
 
           {{#if this.showsConfirmation}}
             <label>
-              Confirmation code
+              {{i18n "itinerary.composer.confirmation_code"}}
               <input
                 type="text"
                 value={{this.composer.itinerary_confirmation_code}}
@@ -633,7 +656,7 @@ export default class ItineraryFields extends Component {
       {{#if this.showsCost}}
         <div class="itinerary-row">
           <label>
-            Cost
+            {{i18n "itinerary.composer.cost"}}
             <input
               type="text"
               inputmode="decimal"
@@ -644,7 +667,7 @@ export default class ItineraryFields extends Component {
           </label>
 
           <label>
-            Currency
+            {{i18n "itinerary.composer.currency"}}
             <input
               type="text"
               maxlength="3"

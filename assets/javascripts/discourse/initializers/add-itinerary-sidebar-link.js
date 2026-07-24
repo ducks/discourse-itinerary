@@ -1,4 +1,5 @@
 import { withPluginApi } from "discourse/lib/plugin-api";
+import { i18n } from "discourse-i18n";
 
 // Adds an "Itinerary" link to the Community section of the sidebar so
 // the plugin's canonical entrypoint is discoverable. The category
@@ -13,8 +14,8 @@ export default {
         {
           name: "itinerary",
           route: "itinerary.index",
-          title: "Itinerary",
-          text: "Itinerary",
+          title: i18n("itinerary.title"),
+          text: i18n("itinerary.title"),
           icon: "plane",
         },
         true

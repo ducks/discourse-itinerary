@@ -321,3 +321,35 @@ body.composer-itinerary-item-mode {
     color: var(--primary);
   }
 }
+
+@media screen and (width <= 700px) {
+  .itinerary-composer .itinerary-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .itinerary-trips__link {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .itinerary-trip__meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .itinerary-item {
+    grid-template-columns: auto auto 1fr;
+
+    &__route,
+    &__location,
+    &__status {
+      grid-column: 3;
+    }
+
+    &__status {
+      justify-self: start;
+    }
+  }
+}

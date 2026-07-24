@@ -1,10 +1,12 @@
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
+import { concat } from "@ember/helper";
 import { on } from "@ember/modifier";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
-import avatar from "discourse/helpers/avatar";
+import dAvatar from "discourse/ui-kit/helpers/d-avatar";
+import { i18n } from "discourse-i18n";
 import { shortItineraryDate } from "../lib/itinerary-date";
 import { openItineraryComposer } from "../lib/open-itinerary-composer";
 
@@ -22,73 +24,12 @@ export default class TripTimeline extends Component {
 
   @tracked shareUrl = null;
 
-  // Fetches (or creates) a share token for this trip and exposes
-  // the resulting public URL so the template can show it. Repeat
-  // clicks reuse the existing token; for rotation use the explicit
-  // regenerateShare action.
-  @action
-  async share() {
-    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share`, {
-      type: "POST",
-    });
-    this.shareUrl = result.url;
-  }
-
-  @action
-  async regenerateShare() {
-    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share/regenerate`, {
-      type: "POST",
-    });
-    this.shareUrl = result.url;
-  }
-
-  @action
-  copyShareUrl() {
-    if (this.shareUrl) {
-      navigator.clipboard?.writeText(this.shareUrl);
-    }
-  }
-
-  // Opens the composer with the itinerary category and seeds the
-  // parent-trip id so a new item lands under this trip. Item-type
-  // defaults blank; user picks flight/hotel/etc. in the composer.
-  @action
-  async addLeg() {
-    const categoryId = Number(this.siteSettings.itinerary_category_id);
-    const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
-
-    await openItineraryComposer(this.composer, {
-      category,
-      parentTripId: this.args.trip?.id,
-    });
-  }
-  // Returns [{ date: "2026-09-20", label: "Sep 20", items: [...] }, ...]
-  // ordered by date ascending. Pre-sorted server-side, so we just
-  // partition without re-sorting.
-  get itemsByDay() {
-    const groups = [];
-    let current = null;
-    for (const item of this.args.items ?? []) {
-      const date = (item.starts_at ?? "").slice(0, 10); // YYYY-MM-DD
-      if (!current || current.date !== date) {
-        current = {
-          date,
-          label: date ? shortItineraryDate(date) : "Undated",
-          items: [],
-        };
-        groups.push(current);
-      }
-      current.items.push(item);
-    }
-    return groups;
-  }
-
+  // "2026-09-20T14:30" -> "14:30". This avoids locale-dependent
+  // formatting because the user already sees a date heading.
   formatTime = (iso) => {
     if (!iso) {
       return "";
     }
-    // "2026-09-20T14:30" -> "14:30". Cheap slice rather than locale-
-    // dependent formatting; the user already sees a date heading.
     const t = iso.split("T")[1];
     return t ? t.slice(0, 5) : "";
   };
@@ -145,6 +86,68 @@ export default class TripTimeline extends Component {
     }
   };
 
+  // Fetches (or creates) a share token for this trip and exposes
+  // the resulting public URL so the template can show it. Repeat
+  // clicks reuse the existing token; for rotation use the explicit
+  // regenerateShare action.
+  @action
+  async share() {
+    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share`, {
+      type: "POST",
+    });
+    this.shareUrl = result.url;
+  }
+
+  @action
+  async regenerateShare() {
+    const result = await ajax(`/itinerary/trips/${this.args.trip.id}/share/regenerate`, {
+      type: "POST",
+    });
+    this.shareUrl = result.url;
+  }
+
+  @action
+  copyShareUrl() {
+    if (this.shareUrl) {
+      navigator.clipboard?.writeText(this.shareUrl);
+    }
+  }
+
+  // Opens the composer with the itinerary category and seeds the
+  // parent-trip id so a new item lands under this trip. Item-type
+  // defaults blank; user picks flight/hotel/etc. in the composer.
+  @action
+  async addLeg() {
+    const categoryId = Number(this.siteSettings.itinerary_category_id);
+    const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
+
+    await openItineraryComposer(this.composer, {
+      category,
+      parentTripId: this.args.trip?.id,
+    });
+  }
+
+  // Returns [{ date: "2026-09-20", label: "Sep 20", items: [...] }, ...]
+  // ordered by date ascending. Pre-sorted server-side, so we just
+  // partition without re-sorting.
+  get itemsByDay() {
+    const groups = [];
+    let current = null;
+    for (const item of this.args.items ?? []) {
+      const date = (item.starts_at ?? "").slice(0, 10); // YYYY-MM-DD
+      if (!current || current.date !== date) {
+        current = {
+          date,
+          label: date ? shortItineraryDate(date) : i18n("itinerary.undated"),
+          items: [],
+        };
+        groups.push(current);
+      }
+      current.items.push(item);
+    }
+    return groups;
+  }
+
   // Bucket item costs by currency and return a list like
   //   [{ currency: "USD", total: 1240.0, formatted: "$1,240.00" },
   //    { currency: "EUR", total: 450.0,  formatted: "€450.00" }]
@@ -185,24 +188,24 @@ export default class TripTimeline extends Component {
             <a
               class="btn btn-default itinerary-trip__ics"
               href="/itinerary/trips/{{@trip.id}}/ics"
-              title="Download as a calendar file you can import into Apple Calendar, Google Calendar, or Outlook."
+              title={{i18n "itinerary.download_ics_title"}}
             >
-              Download .ics
+              {{i18n "itinerary.download_ics"}}
             </a>
             <button
               type="button"
               class="btn btn-default itinerary-trip__share"
-              title="Get a read-only public URL anyone can view without a Discourse account."
+              title={{i18n "itinerary.share_title"}}
               {{on "click" this.share}}
             >
-              Share
+              {{i18n "itinerary.share"}}
             </button>
             <button
               type="button"
               class="btn btn-primary itinerary-trip__add"
               {{on "click" this.addLeg}}
             >
-              + Add leg
+              {{i18n "itinerary.add_leg"}}
             </button>
           </div>
         </div>
@@ -210,17 +213,23 @@ export default class TripTimeline extends Component {
         {{#if this.shareUrl}}
           <div class="itinerary-trip__share-panel">
             <label>
-              <span class="itinerary-trip__share-label">Public read-only link</span>
+              <span class="itinerary-trip__share-label">
+                {{i18n "itinerary.public_link"}}
+              </span>
               <input type="text" readonly value={{this.shareUrl}} />
             </label>
-            <button type="button" class="btn btn-default" {{on "click" this.copyShareUrl}}>Copy</button>
-            <button type="button" class="btn btn-default" {{on "click" this.regenerateShare}}>Regenerate</button>
+            <button type="button" class="btn btn-default" {{on "click" this.copyShareUrl}}>
+              {{i18n "itinerary.copy"}}
+            </button>
+            <button type="button" class="btn btn-default" {{on "click" this.regenerateShare}}>
+              {{i18n "itinerary.regenerate"}}
+            </button>
           </div>
         {{/if}}
         <div class="itinerary-trip__meta">
           {{#if @trip.creator}}
             <span class="itinerary-trip__creator">
-              {{avatar @trip.creator imageSize="small"}}
+              {{dAvatar @trip.creator imageSize="small"}}
               <span class="itinerary-trip__creator-name">{{@trip.creator.username}}</span>
             </span>
           {{/if}}
@@ -228,7 +237,7 @@ export default class TripTimeline extends Component {
             <span class="itinerary-trip__dates">
               {{@trip.starts_at}}
               {{#if @trip.ends_at}}
-                to {{@trip.ends_at}}
+                {{i18n "itinerary.to"}} {{@trip.ends_at}}
               {{/if}}
             </span>
           {{/if}}
@@ -247,7 +256,9 @@ export default class TripTimeline extends Component {
                 {{#each day.items as |item|}}
                   <li class="itinerary-item itinerary-item--{{item.item_type}}">
                     <span class="itinerary-item__time">{{this.formatItemTime item}}</span>
-                    <span class="itinerary-item__type">{{item.item_type}}</span>
+                    <span class="itinerary-item__type">
+                      {{i18n (concat "itinerary.item_types." item.item_type)}}
+                    </span>
                     <a class="itinerary-item__title" href={{item.url}}>{{item.title}}</a>
                     {{#if item.origin}}
                       <span class="itinerary-item__route">
@@ -258,7 +269,7 @@ export default class TripTimeline extends Component {
                     {{/if}}
                     {{#if item.status}}
                       <span class="itinerary-item__status itinerary-item__status--{{item.status}}">
-                        {{item.status}}
+                        {{i18n (concat "itinerary.statuses." item.status)}}
                       </span>
                     {{/if}}
                     {{#let (this.formatCost item) as |cost|}}
@@ -274,13 +285,13 @@ export default class TripTimeline extends Component {
         </ol>
       {{else}}
         <p class="itinerary-trip__empty">
-          No items in this trip yet. Add a topic with this trip selected to populate the timeline.
+          {{i18n "itinerary.no_items"}}
         </p>
       {{/if}}
 
       {{#if this.totalsByCurrency.length}}
         <footer class="itinerary-trip__totals">
-          <span class="itinerary-trip__totals-label">Trip total</span>
+          <span class="itinerary-trip__totals-label">{{i18n "itinerary.trip_total"}}</span>
           {{#each this.totalsByCurrency as |bucket|}}
             <span class="itinerary-trip__totals-bucket">{{bucket.formatted}}</span>
           {{/each}}
