@@ -44,6 +44,39 @@ describe DiscourseItinerary::TripItemFinder do
       expect(result).to be_empty
     end
 
+    it "excludes linked topics that are not valid itinerary item types" do
+      trip_topic = trip
+      invalid = Fabricate(:topic, category: category)
+      invalid.custom_fields["itinerary_item_type"] = "spaceflight"
+      invalid.custom_fields["itinerary_parent_trip_id"] = trip_topic.id
+      invalid.custom_fields["itinerary_starts_at"] = "2026-09-20T14:30"
+      invalid.save_custom_fields
+
+      result = described_class.new(trip: trip_topic, guardian: guardian).call
+
+      expect(result).to be_empty
+    end
+
+    it "excludes linked trip topics" do
+      parent = trip
+      linked_trip = trip
+      linked_trip.custom_fields["itinerary_parent_trip_id"] = parent.id
+      linked_trip.save_custom_fields
+
+      result = described_class.new(trip: parent, guardian: guardian).call
+
+      expect(result).to be_empty
+    end
+
+    it "excludes items in a different category" do
+      trip_topic = trip
+      item(parent_trip: trip_topic, starts_at: "2026-09-20T14:30", category: Fabricate(:category))
+
+      result = described_class.new(trip: trip_topic, guardian: guardian).call
+
+      expect(result).to be_empty
+    end
+
     it "excludes items without a starts_at value" do
       trip_topic = trip
       orphan = Fabricate(:topic, category: category)

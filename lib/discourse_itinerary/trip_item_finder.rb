@@ -20,6 +20,14 @@ module DiscourseItinerary
     def call
       Topic
         .secured(@guardian)
+        .where(category_id: @trip.category_id)
+        .joins(
+          "INNER JOIN topic_custom_fields type_cf " \
+            "ON type_cf.topic_id = topics.id " \
+            "AND type_cf.name = 'itinerary_item_type'",
+        )
+        .where.not("type_cf.value": DiscourseItinerary::Itinerary::TRIP_TYPE)
+        .where("type_cf.value": DiscourseItinerary::VALID_ITEM_TYPES)
         .joins(
           "INNER JOIN topic_custom_fields parent " \
             "ON parent.topic_id = topics.id " \

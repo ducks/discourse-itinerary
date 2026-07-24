@@ -141,6 +141,7 @@ after_initialize do
   require_relative "lib/discourse_itinerary/itinerary"
   require_relative "lib/discourse_itinerary/trip_finder"
   require_relative "lib/discourse_itinerary/trip_item_finder"
+  require_relative "lib/discourse_itinerary/itinerary_validator"
   require_relative "lib/discourse_itinerary/category_provisioner"
   require_relative "lib/discourse_itinerary/ics_formatter"
   require_relative "app/models/itinerary_share_token"
@@ -226,11 +227,43 @@ after_initialize do
     add_permitted_post_create_param(field)
 
     # Persist edits via PostRevisor (used when the topic is edited).
-    PostRevisor.track_topic_field(field.to_sym) do |tc, value|
+    PostRevisor.track_topic_field(field.to_sym) do |tc, value, fields|
+      first_provided_field =
+        DiscourseItinerary::CUSTOM_FIELDS.keys.find { |candidate| fields.key?(candidate) }
+      if field == first_provided_field
+        projected =
+          DiscourseItinerary::CUSTOM_FIELDS.keys.to_h do |candidate|
+            [
+              candidate,
+              fields.key?(candidate) ? fields[candidate] : tc.topic.custom_fields[candidate],
+            ]
+          end
+        errors =
+          DiscourseItinerary::ItineraryValidator.new(
+            fields: projected,
+            category_id: tc.topic.category_id,
+            guardian: tc.guardian,
+          ).call
+        errors.each { |error| tc.topic.errors.add(:base, error) }
+        tc.check_result(false) if errors.any?
+        next if errors.any?
+      end
+
       normalized = DiscourseItinerary.normalize_field(field, value)
       tc.record_change(field, tc.topic.custom_fields[field], normalized)
       tc.topic.custom_fields[field] = normalized
     end
+  end
+
+  on(:after_validate_topic) do |topic, topic_creator|
+    fields = topic_creator.opts.with_indifferent_access
+    errors =
+      DiscourseItinerary::ItineraryValidator.new(
+        fields: fields,
+        category_id: topic.category_id,
+        guardian: topic_creator.guardian,
+      ).call
+    errors.each { |error| topic.errors.add(:base, error) }
   end
 
   # Save on first creation too: when a topic is created, copy any

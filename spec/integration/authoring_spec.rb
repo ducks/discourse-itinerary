@@ -8,9 +8,20 @@ describe "Itinerary authoring" do
   fab!(:user) { Fabricate(:user, trust_level: TrustLevel[1]) }
   fab!(:category)
 
-  before { SiteSetting.itinerary_enabled = true }
+  before do
+    SiteSetting.itinerary_enabled = true
+    SiteSetting.itinerary_category_id = category.id
+  end
+
+  def trip
+    topic = Fabricate(:topic, category: category)
+    topic.custom_fields["itinerary_item_type"] = "trip"
+    topic.save_custom_fields
+    topic
+  end
 
   it "saves itinerary custom fields on topic creation" do
+    parent = trip
     creator =
       PostCreator.new(
         user,
@@ -18,6 +29,7 @@ describe "Itinerary authoring" do
         raw: "Confirmation details inside.",
         category: category.id,
         itinerary_item_type: "flight",
+        itinerary_parent_trip_id: parent.id,
         itinerary_starts_at: "2026-09-20T14:30",
         itinerary_origin: "PDX",
         itinerary_destination: "MAD",
@@ -41,6 +53,8 @@ describe "Itinerary authoring" do
     topic = Fabricate(:topic_with_op, category: category, user: user)
     topic.custom_fields["itinerary_status"] = "planned"
     topic.custom_fields["itinerary_item_type"] = "flight"
+    topic.custom_fields["itinerary_parent_trip_id"] = trip.id
+    topic.custom_fields["itinerary_starts_at"] = "2026-09-20T14:30"
     topic.save_custom_fields
 
     revisor = PostRevisor.new(topic.first_post, topic)
@@ -71,6 +85,7 @@ describe "Itinerary authoring" do
   end
 
   it "saves items with itinerary_parent_trip_id linking back to a trip" do
+    parent = trip
     creator =
       PostCreator.new(
         user,
@@ -78,19 +93,16 @@ describe "Itinerary authoring" do
         raw: "Linked to a trip.",
         category: category.id,
         itinerary_item_type: "flight",
-        itinerary_parent_trip_id: 42,
+        itinerary_parent_trip_id: parent.id,
+        itinerary_starts_at: "2026-09-20T14:30",
       )
     post = creator.create
     expect(creator.errors.full_messages).to be_empty
     # Custom fields registered as :integer come back as Integer on read
-    expect(post.topic.custom_fields["itinerary_parent_trip_id"]).to eq(42)
+    expect(post.topic.custom_fields["itinerary_parent_trip_id"]).to eq(parent.id)
   end
 
-  it "rejects unknown itinerary_item_type values and leaves the field blank" do
-    # normalize_field raises Discourse::InvalidParameters from inside
-    # the :topic_created event handler. DiscourseEvent catches handler
-    # exceptions and logs them rather than re-raising, so the topic
-    # itself still gets created with no itinerary_item_type stored.
+  it "rejects unknown itinerary_item_type values before creating the topic" do
     creator =
       PostCreator.new(
         user,
@@ -100,7 +112,9 @@ describe "Itinerary authoring" do
         itinerary_item_type: "spaceflight",
       )
     post = creator.create
-    expect(post.topic.custom_fields["itinerary_item_type"]).to be_nil
+
+    expect(post).to be_nil
+    expect(creator.errors.full_messages).to include("Unknown itinerary item type: spaceflight.")
   end
 
   it "accepts a well-formed cost amount and currency" do
