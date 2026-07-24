@@ -4,7 +4,7 @@ import { action } from "@ember/object";
 import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
 import avatar from "discourse/helpers/avatar";
-import { shortDate } from "discourse/lib/formatter";
+import { shortItineraryDate } from "../lib/itinerary-date";
 
 // Renders the /itinerary index: a flat chronological list of trips
 // the user can see. The server already sorts by starts_at, so we just
@@ -16,7 +16,7 @@ export default class TripList extends Component {
   @service site;
   @service siteSettings;
 
-  formatDate = (iso) => (iso ? shortDate(new Date(iso)) : "-");
+  formatDate = shortItineraryDate;
 
   // Opens the standard composer pre-scoped to the itinerary category
   // and seeds the trip item-type so the composer panel hides the

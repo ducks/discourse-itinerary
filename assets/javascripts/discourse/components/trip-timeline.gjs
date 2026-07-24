@@ -5,7 +5,7 @@ import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import avatar from "discourse/helpers/avatar";
-import { shortDate } from "discourse/lib/formatter";
+import { shortItineraryDate } from "../lib/itinerary-date";
 
 // Renders one trip's timeline: a header with trip metadata, then
 // items grouped by day. Items are already sorted by starts_at on
@@ -72,7 +72,7 @@ export default class TripTimeline extends Component {
       if (!current || current.date !== date) {
         current = {
           date,
-          label: date ? shortDate(new Date(date)) : "Undated",
+          label: date ? shortItineraryDate(date) : "Undated",
           items: [],
         };
         groups.push(current);
