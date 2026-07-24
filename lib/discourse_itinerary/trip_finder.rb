@@ -12,7 +12,7 @@ module DiscourseItinerary
   # Sort order: by `itinerary_starts_at` ascending. Trips without a
   # starts_at value sort last (in arbitrary order among themselves).
   class TripFinder
-    def initialize(guardian:, category: nil, created_by: nil)
+    def initialize(guardian:, category: DiscourseItinerary.category, created_by: nil)
       @guardian = guardian
       @category = category
       @created_by = created_by

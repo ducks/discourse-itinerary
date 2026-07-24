@@ -6,7 +6,10 @@ describe ItineraryController, type: :request do
   fab!(:user)
   fab!(:category)
 
-  before { SiteSetting.itinerary_enabled = true }
+  before do
+    SiteSetting.itinerary_enabled = true
+    SiteSetting.itinerary_category_id = category.id
+  end
 
   def trip(starts_at: "2026-09-20", category: self.category, title: nil)
     attrs = { category: category, title: title || "Itinerary trip fixture #{SecureRandom.hex(4)}" }
@@ -31,7 +34,7 @@ describe ItineraryController, type: :request do
   end
 
   describe "#index (GET /itinerary/trips)" do
-    it "returns every visible trip sorted by starts_at" do
+    it "returns every visible trip in the configured category sorted by starts_at" do
       later = trip(starts_at: "2026-10-01", title: "Lisbon vacation October 2026")
       earlier = trip(starts_at: "2026-09-20", title: "Madrid working trip September")
 
@@ -73,6 +76,15 @@ describe ItineraryController, type: :request do
       expect(ids).to eq([mine.id, theirs.id])
     end
 
+    it "returns 404 when category_id is not the configured category" do
+      other_category = Fabricate(:category)
+
+      sign_in(user)
+      get "/itinerary/trips.json", params: { category_id: other_category.id }
+
+      expect(response.status).to eq(404)
+    end
+
     it "returns 404 when category_id points at a category the user can't see" do
       private_category = Fabricate(:private_category, group: Fabricate(:group))
 
@@ -85,6 +97,17 @@ describe ItineraryController, type: :request do
     it "returns 404 when category_id doesn't exist" do
       sign_in(user)
       get "/itinerary/trips.json", params: { category_id: 999_999 }
+      expect(response.status).to eq(404)
+    end
+
+    it "returns 404 when the configured category has been deleted" do
+      configured_id = category.id
+      category.destroy!
+      SiteSetting.itinerary_category_id = configured_id
+
+      sign_in(user)
+      get "/itinerary/trips.json"
+
       expect(response.status).to eq(404)
     end
 

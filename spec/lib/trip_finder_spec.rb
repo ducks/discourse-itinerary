@@ -7,6 +7,8 @@ describe DiscourseItinerary::TripFinder do
   fab!(:category)
   let(:guardian) { Guardian.new(user) }
 
+  before { SiteSetting.itinerary_category_id = category.id }
+
   def trip(starts_at: "2026-09-20", category: self.category, user: nil)
     attrs = { category: category }
     attrs[:user] = user if user
@@ -53,13 +55,13 @@ describe DiscourseItinerary::TripFinder do
       expect(result.map(&:id)).to eq([in_target.id])
     end
 
-    it "returns trips from all categories when no category is provided" do
+    it "defaults to the configured itinerary category" do
       other_category = Fabricate(:category)
       a = trip(starts_at: "2026-09-20", category: category)
-      b = trip(starts_at: "2026-10-01", category: other_category)
+      trip(starts_at: "2026-10-01", category: other_category)
 
       result = described_class.new(guardian: guardian).call
-      expect(result.map(&:id)).to contain_exactly(a.id, b.id)
+      expect(result.map(&:id)).to eq([a.id])
     end
 
     it "respects guardian visibility on the category" do

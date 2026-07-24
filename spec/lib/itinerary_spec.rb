@@ -7,6 +7,8 @@ describe DiscourseItinerary::Itinerary do
   fab!(:category)
   let(:guardian) { Guardian.new(user) }
 
+  before { SiteSetting.itinerary_category_id = category.id }
+
   def trip(starts_at: "2026-09-20", ends_at: "2026-09-25", location: "Madrid")
     topic = Fabricate(:topic, category: category)
     topic.custom_fields["itinerary_item_type"] = "trip"
@@ -62,6 +64,14 @@ describe DiscourseItinerary::Itinerary do
       flight.custom_fields["itinerary_item_type"] = "flight"
       flight.save_custom_fields
       expect(described_class.find(flight.id, guardian: guardian)).to be_nil
+    end
+
+    it "returns nil when the trip is outside the configured category" do
+      other_category = Fabricate(:category)
+      trip_topic = trip
+      trip_topic.update!(category: other_category)
+
+      expect(described_class.find(trip_topic.id, guardian: guardian)).to be_nil
     end
 
     it "returns nil when the guardian can't see the topic" do

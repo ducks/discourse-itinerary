@@ -25,6 +25,7 @@ module DiscourseItinerary
       return nil unless topic
       return nil unless guardian.can_see?(topic)
       return nil unless trip?(topic)
+      return nil unless topic.category_id == DiscourseItinerary.category&.id
       new(topic, guardian: guardian)
     end
 

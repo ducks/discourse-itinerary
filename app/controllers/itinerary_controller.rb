@@ -28,13 +28,9 @@ class ::ItineraryController < ::ApplicationController
   # current user created (used by the composer's parent-trip
   # dropdown). Items are not returned here; see #show.
   def index
-    category = nil
-    if params[:category_id].present?
-      category = Category.find_by(id: params[:category_id])
-      # 404 on both "doesn't exist" and "you can't see it" so we
-      # don't leak the existence of categories the caller isn't
-      # allowed to know about.
-      raise Discourse::NotFound unless category && guardian.can_see?(category)
+    category = configured_category!
+    if params[:category_id].present? && params[:category_id].to_i != category.id
+      raise Discourse::NotFound
     end
 
     created_by = current_user if params[:created_by_me].to_s == "true" && current_user
@@ -153,5 +149,15 @@ class ::ItineraryController < ::ApplicationController
 
   def share_url(token)
     "#{Discourse.base_url}/itinerary/shared/#{token}"
+  end
+
+  # The site setting is the server-side workspace boundary. Returning 404 for
+  # an unset, deleted, or hidden category avoids leaking category existence
+  # and keeps API clients from using itinerary fields as a global topic type.
+  def configured_category!
+    category = DiscourseItinerary.category
+    raise Discourse::NotFound unless category && guardian.can_see?(category)
+
+    category
   end
 end

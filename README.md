@@ -22,8 +22,8 @@ travel timeline.
 - **Other itinerary topics** = items (flight, hotel, train, event, transfer,
   note) that point at their parent trip via `itinerary_parent_trip_id`
 - **Topic custom fields** = structured metadata
-- **Plugin routes**: `GET /itinerary/trips` (list trips, optionally
-  filtered by `category_id`), `GET /itinerary/trips/:id` (one trip
+- **Plugin routes**: `GET /itinerary/trips` (list trips in the configured
+  category; an optional `category_id` must match it), `GET /itinerary/trips/:id` (one trip
   with its items, day-grouped on the client)
 - **Pages**: `/itinerary` (trip list) and `/itinerary/:trip_id` (timeline)
 
