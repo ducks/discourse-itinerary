@@ -173,7 +173,11 @@ export default class ItineraryFields extends Component {
     }
     try {
       const response = await ajax("/itinerary/trips.json", {
-        data: { category_id: categoryId, created_by_me: true },
+        // Every trip visible to the current user is eligible. Category
+        // permissions remain the collaboration boundary; restricting this
+        // list to trips created by the current user prevents teammates from
+        // contributing legs to shared trips.
+        data: { category_id: categoryId },
       });
       this.availableTrips = response.trips || [];
     } catch {

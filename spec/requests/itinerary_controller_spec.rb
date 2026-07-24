@@ -55,6 +55,24 @@ describe ItineraryController, type: :request do
       expect(ids).to eq([in_target.id])
     end
 
+    it "returns visible trips created by other users for collaborative authoring" do
+      other_user = Fabricate(:user)
+      mine = Fabricate(:topic, category: category, user: user)
+      theirs = Fabricate(:topic, category: category, user: other_user)
+
+      [mine, theirs].each_with_index do |topic, index|
+        topic.custom_fields["itinerary_item_type"] = "trip"
+        topic.custom_fields["itinerary_starts_at"] = "2026-09-2#{index}"
+        topic.save_custom_fields
+      end
+
+      sign_in(user)
+      get "/itinerary/trips.json", params: { category_id: category.id }
+
+      ids = response.parsed_body["trips"].map { |t| t["id"] }
+      expect(ids).to eq([mine.id, theirs.id])
+    end
+
     it "returns 404 when category_id points at a category the user can't see" do
       private_category = Fabricate(:private_category, group: Fabricate(:group))
 
