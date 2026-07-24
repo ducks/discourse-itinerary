@@ -5,6 +5,7 @@ import { LinkTo } from "@ember/routing";
 import { service } from "@ember/service";
 import avatar from "discourse/helpers/avatar";
 import { shortItineraryDate } from "../lib/itinerary-date";
+import { openItineraryComposer } from "../lib/open-itinerary-composer";
 
 // Renders the /itinerary index: a flat chronological list of trips
 // the user can see. The server already sorts by starts_at, so we just
@@ -27,10 +28,10 @@ export default class TripList extends Component {
     const categoryId = Number(this.siteSettings.itinerary_category_id);
     const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
 
-    await this.composer.openNewTopic({ category });
-    if (this.composer.model) {
-      this.composer.model.set("itinerary_item_type", "trip");
-    }
+    await openItineraryComposer(this.composer, {
+      category,
+      itemType: "trip",
+    });
   }
 
   <template>

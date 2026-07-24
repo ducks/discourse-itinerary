@@ -6,6 +6,7 @@ import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import avatar from "discourse/helpers/avatar";
 import { shortItineraryDate } from "../lib/itinerary-date";
+import { openItineraryComposer } from "../lib/open-itinerary-composer";
 
 // Renders one trip's timeline: a header with trip metadata, then
 // items grouped by day. Items are already sorted by starts_at on
@@ -56,10 +57,10 @@ export default class TripTimeline extends Component {
     const categoryId = Number(this.siteSettings.itinerary_category_id);
     const category = categoryId > 0 ? this.site.categories.findBy("id", categoryId) : null;
 
-    await this.composer.openNewTopic({ category });
-    if (this.composer.model && this.args.trip?.id) {
-      this.composer.model.set("itinerary_parent_trip_id", this.args.trip.id);
-    }
+    await openItineraryComposer(this.composer, {
+      category,
+      parentTripId: this.args.trip?.id,
+    });
   }
   // Returns [{ date: "2026-09-20", label: "Sep 20", items: [...] }, ...]
   // ordered by date ascending. Pre-sorted server-side, so we just
