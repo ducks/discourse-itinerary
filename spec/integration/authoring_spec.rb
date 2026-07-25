@@ -118,6 +118,7 @@ describe "Itinerary authoring" do
   end
 
   it "accepts a well-formed cost amount and currency" do
+    parent = trip
     creator =
       PostCreator.new(
         user,
@@ -125,6 +126,8 @@ describe "Itinerary authoring" do
         raw: "Body.",
         category: category.id,
         itinerary_item_type: "flight",
+        itinerary_parent_trip_id: parent.id,
+        itinerary_starts_at: "2026-09-20T14:30",
         itinerary_start_timezone: "America/Los_Angeles",
         itinerary_end_timezone: "Europe/Madrid",
         itinerary_cost_amount: "842.50",
@@ -136,6 +139,7 @@ describe "Itinerary authoring" do
   end
 
   it "rejects a cost amount that contains a comma separator" do
+    parent = trip
     creator =
       PostCreator.new(
         user,
@@ -143,16 +147,22 @@ describe "Itinerary authoring" do
         raw: "Body.",
         category: category.id,
         itinerary_item_type: "hotel",
+        itinerary_parent_trip_id: parent.id,
+        itinerary_starts_at: "2026-09-20T15:00",
         itinerary_start_timezone: "Europe/Madrid",
         itinerary_end_timezone: "Europe/Madrid",
         itinerary_cost_amount: "1,240.50",
         itinerary_cost_currency: "EUR",
       )
     post = creator.create
-    expect(post.topic.custom_fields["itinerary_cost_amount"]).to be_nil
+    expect(post).to be_nil
+    expect(creator.errors.full_messages).to include(
+      "Itinerary cost amount must be a decimal such as 842.50.",
+    )
   end
 
   it "rejects a lowercase currency code" do
+    parent = trip
     creator =
       PostCreator.new(
         user,
@@ -160,12 +170,17 @@ describe "Itinerary authoring" do
         raw: "Body.",
         category: category.id,
         itinerary_item_type: "hotel",
+        itinerary_parent_trip_id: parent.id,
+        itinerary_starts_at: "2026-09-20T15:00",
         itinerary_start_timezone: "Europe/Madrid",
         itinerary_end_timezone: "Europe/Madrid",
         itinerary_cost_amount: "100.00",
         itinerary_cost_currency: "eur",
       )
     post = creator.create
-    expect(post.topic.custom_fields["itinerary_cost_currency"]).to be_nil
+    expect(post).to be_nil
+    expect(creator.errors.full_messages).to include(
+      "Itinerary cost currency must be three uppercase letters such as USD.",
+    )
   end
 end
