@@ -2,6 +2,9 @@
 
 class ::ItineraryController < ::ApplicationController
   requires_plugin DiscourseItinerary::PLUGIN_NAME
+  prepend_view_path File.expand_path("../views", __dir__)
+
+  TRIPS_PER_PAGE = 50
 
   # The public share view doesn't require a logged-in session - the
   # whole point is to hand someone outside Discourse a URL that just
@@ -35,17 +38,26 @@ class ::ItineraryController < ::ApplicationController
     end
 
     created_by = current_user if params[:created_by_me].to_s == "true" && current_user
+    page = [params[:page].to_i, 0].max
 
     trip_topics =
       DiscourseItinerary::TripFinder.new(
         guardian: guardian,
         category: category,
         created_by: created_by,
+        limit: TRIPS_PER_PAGE + 1,
+        offset: page * TRIPS_PER_PAGE,
       ).call
+    has_more = trip_topics.length > TRIPS_PER_PAGE
+    trip_topics = trip_topics.first(TRIPS_PER_PAGE)
     trips = trip_topics.map { |t| DiscourseItinerary::Itinerary.new(t, guardian: guardian) }
 
     render_json_dump(
       trips: trips.map { |trip| TripSerializer.new(trip, scope: guardian, root: false).as_json },
+      meta: {
+        has_more: has_more,
+        next_page: has_more ? page + 1 : nil,
+      },
     )
   end
 

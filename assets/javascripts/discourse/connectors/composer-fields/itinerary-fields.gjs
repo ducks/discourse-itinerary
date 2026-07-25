@@ -174,14 +174,22 @@ export default class ItineraryFields extends Component {
       return;
     }
     try {
-      const response = await ajax("/itinerary/trips.json", {
-        // Every trip visible to the current user is eligible. Category
-        // permissions remain the collaboration boundary; restricting this
-        // list to trips created by the current user prevents teammates from
-        // contributing legs to shared trips.
-        data: { category_id: categoryId },
-      });
-      this.availableTrips = response.trips || [];
+      const trips = [];
+      let page = 0;
+      let hasMore = true;
+      while (hasMore) {
+        const response = await ajax("/itinerary/trips.json", {
+          // Every trip visible to the current user is eligible. Category
+          // permissions remain the collaboration boundary; restricting this
+          // list to trips created by the current user prevents teammates from
+          // contributing legs to shared trips.
+          data: { category_id: categoryId, page },
+        });
+        trips.push(...(response.trips ?? []));
+        hasMore = response.meta?.has_more ?? false;
+        page = response.meta?.next_page;
+      }
+      this.availableTrips = trips;
     } catch {
       // If the request fails (network blip, server error) we just
       // leave the dropdown empty rather than blocking the composer.

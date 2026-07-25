@@ -90,5 +90,16 @@ describe DiscourseItinerary::TripFinder do
       result = described_class.new(guardian: guardian, created_by: user).call
       expect(result.map(&:id)).to eq([mine.id])
     end
+
+    it "supports bounded pages" do
+      first = trip(starts_at: "2026-09-20")
+      second = trip(starts_at: "2026-09-21")
+      trip(starts_at: "2026-09-22")
+
+      result = described_class.new(guardian: guardian, limit: 1, offset: 1).call
+
+      expect(result).to eq([second])
+      expect(result).not_to include(first)
+    end
   end
 end
