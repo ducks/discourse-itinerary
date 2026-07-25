@@ -111,6 +111,8 @@ describe DiscourseItinerary::IcsFormatter do
           location: "Madrid",
         )
       ics = described_class.call(trip: trip, items: [hotel])
+      expect(ics).to include("DTSTART;VALUE=DATE:20260921")
+      expect(ics).to include("DTEND;VALUE=DATE:20260924")
       expect(ics).to include("SUMMARY:Hotel: Artrip (Madrid)")
     end
 
@@ -206,6 +208,25 @@ describe DiscourseItinerary::IcsFormatter do
       expect(ics.scan("BEGIN:VTIMEZONE").length).to eq(2)
     end
 
+    it "emits the daylight-saving transitions surrounding the trip" do
+      event =
+        make_item(
+          trip: trip,
+          starts_at: "2026-07-20T14:30",
+          start_timezone: "America/Los_Angeles",
+          item_type: "event",
+        )
+
+      ics = described_class.call(trip: trip, items: [event])
+
+      expect(ics).to include("BEGIN:DAYLIGHT")
+      expect(ics).to include("TZOFFSETFROM:-0800")
+      expect(ics).to include("TZOFFSETTO:-0700")
+      expect(ics).to include("BEGIN:STANDARD")
+      expect(ics).to include("TZOFFSETFROM:-0700")
+      expect(ics).to include("TZOFFSETTO:-0800")
+    end
+
     it "falls back to a floating time when an item has no timezone" do
       legacy = make_item(trip: trip, starts_at: "2026-09-20T14:30", item_type: "event")
       ics = described_class.call(trip: trip, items: [legacy])
@@ -220,6 +241,19 @@ describe DiscourseItinerary::IcsFormatter do
     it "escapes commas, semicolons, backslashes, and newlines in text fields" do
       ics = described_class.call(trip: trip, items: [])
       expect(ics).to include("X-WR-CALNAME:Tricky\\, trip\\; with\\\\backslash")
+    end
+
+    it "folds long non-ASCII lines on valid UTF-8 character boundaries" do
+      trip = make_trip(title: "Summer itinerary")
+      trip.topic.update_column(:title, "夏の旅行計画" * 10)
+
+      ics = described_class.call(trip: trip, items: [])
+      calendar_name_lines = ics.lines.grep(/X-WR-CALNAME|^ /)
+
+      expect(ics.valid_encoding?).to eq(true)
+      expect(calendar_name_lines).to all(
+        satisfy { |line| line.delete_suffix("\r\n").bytesize <= 75 },
+      )
     end
   end
 end

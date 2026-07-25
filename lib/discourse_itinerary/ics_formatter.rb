@@ -67,10 +67,6 @@ module DiscourseItinerary
     private
 
     # All distinct IANA zones used by this trip, both start and end.
-    # We emit one VTIMEZONE per zone so each TZID parameter in the
-    # event blocks resolves against an in-document definition rather
-    # than only the importer's database (some strict importers
-    # require the in-document definition).
     def used_timezones
       ids = []
       @items.each do |item|
@@ -82,40 +78,73 @@ module DiscourseItinerary
       ids.uniq
     end
 
-    # Emit a VTIMEZONE with a single STANDARD component carrying the
-    # zone's current offset. We deliberately don't enumerate DST
-    # transitions: doing it correctly is involved and importing
-    # calendars resolve TZIDs via their own IANA database anyway.
-    # The presence of the VTIMEZONE block satisfies strict importers
-    # like Outlook; the contents are a hint.
+    # Emit concrete timezone transitions covering the itinerary's date
+    # range, plus a year on either side. A single "current offset" block
+    # is incorrect for trips in another daylight-saving period.
     def vtimezone_lines
-      out = []
-      used_timezones.each do |id|
-        tz =
-          (
-            begin
-              TZInfo::Timezone.get(id)
-            rescue StandardError
-              nil
-            end
-          )
-        next unless tz
-        offset = tz.current_period.utc_offset + tz.current_period.std_offset
-        offset_str = format_offset(offset)
-        abbrev = tz.current_period.zone_identifier.to_s
-        abbrev = id.split("/").last if abbrev.empty?
+      range_start, range_end = timezone_range
 
-        out << "BEGIN:VTIMEZONE"
-        out << "TZID:#{id}"
-        out << "BEGIN:STANDARD"
-        out << "DTSTART:19700101T000000"
-        out << "TZOFFSETFROM:#{offset_str}"
-        out << "TZOFFSETTO:#{offset_str}"
-        out << "TZNAME:#{abbrev}"
-        out << "END:STANDARD"
-        out << "END:VTIMEZONE"
+      used_timezones.flat_map do |id|
+        timezone = TZInfo::Timezone.get(id)
+        transitions = timezone.transitions_up_to(range_end, range_start)
+        observances =
+          if transitions.empty?
+            [fixed_offset_observance(timezone, range_start)]
+          else
+            transitions.map { |transition| transition_observance(transition) }
+          end
+
+        [
+          "BEGIN:VTIMEZONE",
+          "TZID:#{id}",
+          "X-LIC-LOCATION:#{id}",
+          *observances.flatten,
+          "END:VTIMEZONE",
+        ]
+      rescue TZInfo::InvalidTimezoneIdentifier
+        []
       end
-      out
+    end
+
+    def timezone_range
+      years =
+        @items.flat_map do |item|
+          %w[itinerary_starts_at itinerary_ends_at].filter_map do |field|
+            value = cf(item, field).presence
+            value.to_s.slice(0, 4).to_i if value
+          end
+        end
+      years = [Time.now.utc.year] if years.empty?
+      [Time.utc(years.min - 1, 1, 1), Time.utc(years.max + 2, 1, 1)]
+    end
+
+    def transition_observance(transition)
+      from = transition.previous_offset
+      to = transition.offset
+      local_start = transition.at.to_time.utc + from.observed_utc_offset
+      kind = to.dst? ? "DAYLIGHT" : "STANDARD"
+
+      [
+        "BEGIN:#{kind}",
+        "DTSTART:#{local_start.strftime("%Y%m%dT%H%M%S")}",
+        "TZOFFSETFROM:#{format_offset(from.observed_utc_offset)}",
+        "TZOFFSETTO:#{format_offset(to.observed_utc_offset)}",
+        "TZNAME:#{to.abbreviation}",
+        "END:#{kind}",
+      ]
+    end
+
+    def fixed_offset_observance(timezone, range_start)
+      period = timezone.period_for_utc(range_start)
+      offset = period.observed_utc_offset
+      [
+        "BEGIN:STANDARD",
+        "DTSTART:#{range_start.strftime("%Y%m%dT%H%M%S")}",
+        "TZOFFSETFROM:#{format_offset(offset)}",
+        "TZOFFSETTO:#{format_offset(offset)}",
+        "TZNAME:#{period.abbreviation}",
+        "END:STANDARD",
+      ]
     end
 
     # Render a UTC offset in seconds as iCal's basic format (+HHMM
@@ -210,6 +239,8 @@ module DiscourseItinerary
     # time (no TZID parameter) - only used for legacy items written
     # before timezone fields were required.
     def dt_property(name, iso, tz)
+      return "#{name};VALUE=DATE:#{iso.delete("-")}" if !iso.include?("T")
+
       if tz
         "#{name};TZID=#{tz}:#{ical_datetime(iso)}"
       else
@@ -235,19 +266,25 @@ module DiscourseItinerary
       value.to_s.gsub("\\", "\\\\\\\\").gsub("\n", "\\n").gsub(",", "\\,").gsub(";", "\\;")
     end
 
-    # Fold lines longer than 75 octets at 75-octet boundaries per
-    # RFC 5545 3.1. Continuation lines start with a single space.
-    # Most itinerary lines are short enough to skip folding entirely.
+    # Fold lines without splitting a multibyte UTF-8 character. The
+    # continuation space counts toward the 75-octet physical-line limit.
     def fold(line)
       return line if line.bytesize <= 75
+
       pieces = []
-      remaining = line
-      while remaining.bytesize > 75
-        pieces << remaining.byteslice(0, 75)
-        remaining = remaining.byteslice(75..) || ""
+      current = +""
+      limit = 75
+      line.each_char do |character|
+        if current.bytesize + character.bytesize > limit
+          pieces << current
+          current = +character
+          limit = 74
+        else
+          current << character
+        end
       end
-      pieces << remaining unless remaining.empty?
-      pieces.first + pieces[1..].map { |p| LINE_TERMINATOR + " " + p }.join
+      pieces << current unless current.empty?
+      pieces.join("#{LINE_TERMINATOR} ")
     end
 
     def cf(item, key)

@@ -6,8 +6,8 @@ class ::ItineraryController < ::ApplicationController
   # The public share view doesn't require a logged-in session - the
   # whole point is to hand someone outside Discourse a URL that just
   # works. Skip the auth checks Discourse normally enforces.
-  skip_before_action :check_xhr, only: %i[shared]
-  skip_before_action :preload_json, only: %i[shared]
+  skip_before_action :check_xhr, only: %i[export shared]
+  skip_before_action :preload_json, only: %i[export shared]
   skip_before_action :redirect_to_login_if_required, only: %i[shared]
   before_action :ensure_logged_in, only: %i[share regenerate_share]
 
@@ -77,7 +77,7 @@ class ::ItineraryController < ::ApplicationController
   # add) that's fine. Per-user subscribe tokens are a follow-up.
   def export
     trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
-    raise Discourse::NotFound unless trip
+    return head :not_found unless trip
 
     ics = DiscourseItinerary::IcsFormatter.call(trip: trip, items: trip.items)
 
