@@ -49,3 +49,25 @@ class ItineraryShareToken < ActiveRecord::Base
     SecureRandom.urlsafe_base64(TOKEN_BYTES)
   end
 end
+
+# == Schema Information
+#
+# Table name: itinerary_share_tokens
+#
+#  id            :bigint           not null, primary key
+#  token         :string           not null
+#  created_at    :datetime         not null
+#  created_by_id :integer
+#  topic_id      :integer          not null
+#
+# Indexes
+#
+#  index_itinerary_share_tokens_on_created_by_id  (created_by_id)
+#  index_itinerary_share_tokens_on_token          (token) UNIQUE
+#  index_itinerary_share_tokens_on_topic_id       (topic_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (created_by_id => users.id) ON DELETE => nullify
+#  fk_rails_...  (topic_id => topics.id) ON DELETE => cascade
+#
