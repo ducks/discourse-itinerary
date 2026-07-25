@@ -6,3 +6,5 @@ plugins:
     default: -1
     min: -1
     client: true
+  itinerary_include_confirmation_codes_in_ics:
+    default: false

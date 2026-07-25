@@ -196,7 +196,9 @@ module DiscourseItinerary
     def description_for(item)
       parts = []
       conf = cf(item, "itinerary_confirmation_code")
-      parts << "Confirmation: #{conf}" if conf.present?
+      if SiteSetting.itinerary_include_confirmation_codes_in_ics && conf.present?
+        parts << "Confirmation: #{conf}"
+      end
       status = cf(item, "itinerary_status")
       parts << "Status: #{status}" if status.present?
       parts.join("\n")
