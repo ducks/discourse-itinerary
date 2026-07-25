@@ -125,6 +125,27 @@ describe ItineraryController, type: :request do
       ids = response.parsed_body["trips"].map { |t| t["id"] }
       expect(ids).to eq([trip_topic.id])
     end
+
+    it "paginates large trip lists and reports the next page" do
+      stub_const(ItineraryController, :TRIPS_PER_PAGE, 2) do
+        first = trip(starts_at: "2026-09-20")
+        second = trip(starts_at: "2026-09-21")
+        third = trip(starts_at: "2026-09-22")
+
+        sign_in(user)
+        get "/itinerary/trips.json"
+
+        expect(response.parsed_body["trips"].map { |entry| entry["id"] }).to eq(
+          [first.id, second.id],
+        )
+        expect(response.parsed_body["meta"]).to eq("has_more" => true, "next_page" => 1)
+
+        get "/itinerary/trips.json", params: { page: 1 }
+
+        expect(response.parsed_body["trips"].map { |entry| entry["id"] }).to eq([third.id])
+        expect(response.parsed_body["meta"]).to eq("has_more" => false, "next_page" => nil)
+      end
+    end
   end
 
   describe "#show (GET /itinerary/trips/:id)" do
@@ -311,7 +332,7 @@ describe ItineraryController, type: :request do
       post "/itinerary/trips/#{t.id}/share"
       token = response.parsed_body["token"]
 
-      reset_session
+      sign_out
       get "/itinerary/shared/#{token}"
 
       expect(response.status).to eq(200)

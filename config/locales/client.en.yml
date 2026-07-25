@@ -2,6 +2,7 @@ en:
   itinerary:
     title: "Itinerary"
     trips: "Trips"
+    load_more: "Load more"
     add_trip: "+ Add trip"
     add_leg: "+ Add leg"
     download_ics: "Download .ics"

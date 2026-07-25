@@ -12,10 +12,18 @@ module DiscourseItinerary
   # Sort order: by `itinerary_starts_at` ascending. Trips without a
   # starts_at value sort last (in arbitrary order among themselves).
   class TripFinder
-    def initialize(guardian:, category: DiscourseItinerary.category, created_by: nil)
+    def initialize(
+      guardian:,
+      category: DiscourseItinerary.category,
+      created_by: nil,
+      limit: nil,
+      offset: nil
+    )
       @guardian = guardian
       @category = category
       @created_by = created_by
+      @limit = limit
+      @offset = offset
     end
 
     def call
@@ -34,10 +42,12 @@ module DiscourseItinerary
               "AND starts_cf.name = 'itinerary_starts_at'",
           )
           .order(Arel.sql("starts_cf.value ASC NULLS LAST"))
-          .includes(:_custom_fields)
+          .includes(:_custom_fields, :category, :user)
 
       scope = scope.where(category_id: @category.id) if @category
       scope = scope.where(user_id: @created_by.id) if @created_by
+      scope = scope.limit(@limit) if @limit
+      scope = scope.offset(@offset) if @offset
       scope.to_a
     end
   end
