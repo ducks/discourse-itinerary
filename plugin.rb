@@ -61,6 +61,7 @@ module ::DiscourseItinerary
   # Admins can rename the category afterwards; the plugin only
   # references it via the `itinerary_category_id` site setting.
   DEFAULT_CATEGORY_NAME = "Itinerary"
+  MANAGED_CATEGORY_FIELD = "discourse_itinerary_managed"
 
   # Returns the configured itinerary category, or nil if the setting
   # is unset / points at a deleted category.
@@ -136,6 +137,7 @@ after_initialize do
   DiscourseItinerary::CUSTOM_FIELDS.each do |field, type|
     register_topic_custom_field_type(field, type)
   end
+  register_category_custom_field_type(DiscourseItinerary::MANAGED_CATEGORY_FIELD, :boolean)
 
   require_relative "lib/discourse_itinerary/engine"
   require_relative "lib/discourse_itinerary/itinerary"

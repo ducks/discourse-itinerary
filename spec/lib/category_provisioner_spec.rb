@@ -16,9 +16,15 @@ describe DiscourseItinerary::CategoryProvisioner do
       # raise InvalidParameters.
       SiteSetting.default_categories_muted = ""
       SiteSetting.itinerary_category_id = -1
+      managed_ids =
+        CategoryCustomField.where(name: DiscourseItinerary::MANAGED_CATEGORY_FIELD).pluck(
+          :category_id,
+        )
+      Category.where(id: managed_ids).destroy_all
       Category.where(
-        "LOWER(name) = ? OR slug = ?",
+        "LOWER(name) = ? OR LOWER(name) LIKE ? OR slug = ?",
         DiscourseItinerary::DEFAULT_CATEGORY_NAME.downcase,
+        "travel itinerary%",
         "itinerary",
       ).destroy_all
     end
@@ -29,6 +35,7 @@ describe DiscourseItinerary::CategoryProvisioner do
       category = Category.find_by(name: DiscourseItinerary::DEFAULT_CATEGORY_NAME)
       expect(category).to be_present
       expect(SiteSetting.itinerary_category_id).to eq(category.id)
+      expect(category.custom_fields[DiscourseItinerary::MANAGED_CATEGORY_FIELD]).to eq(true)
     end
 
     it "is a no-op when the site setting already points at a category" do
@@ -37,6 +44,7 @@ describe DiscourseItinerary::CategoryProvisioner do
 
       expect { described_class.ensure_category! }.not_to change { Category.count }
       expect(SiteSetting.itinerary_category_id).to eq(existing.id)
+      expect(existing.reload.custom_fields[DiscourseItinerary::MANAGED_CATEGORY_FIELD]).to eq(true)
     end
 
     it "reprovisions when the configured category has been deleted" do
@@ -48,25 +56,21 @@ describe DiscourseItinerary::CategoryProvisioner do
       expect(SiteSetting.itinerary_category_id).not_to eq(orphan.id)
     end
 
-    it "reuses an existing category with the default name without creating a duplicate" do
+    it "does not take over an unrelated category with the default name" do
       already = Fabricate(:category, name: DiscourseItinerary::DEFAULT_CATEGORY_NAME)
 
-      expect { described_class.ensure_category! }.not_to change { Category.count }
-      expect(SiteSetting.itinerary_category_id).to eq(already.id)
+      expect { described_class.ensure_category! }.to change { Category.count }.by(1)
+      expect(SiteSetting.itinerary_category_id).not_to eq(already.id)
+      expect(DiscourseItinerary.category.name).to eq("Travel Itinerary")
     end
 
-    it "matches an existing category by slug regardless of name casing" do
-      lower = Fabricate(:category, name: "itinerary", slug: "itinerary")
+    it "reuses a previously managed category when the setting is cleared" do
+      managed = Fabricate(:category, name: "Team Travel")
+      managed.custom_fields[DiscourseItinerary::MANAGED_CATEGORY_FIELD] = true
+      managed.save_custom_fields
 
       expect { described_class.ensure_category! }.not_to change { Category.count }
-      expect(SiteSetting.itinerary_category_id).to eq(lower.id)
-    end
-
-    it "matches an existing category by case-insensitive name when slug differs" do
-      shouty = Fabricate(:category, name: "ITINERARY", slug: "shouty-trips")
-
-      expect { described_class.ensure_category! }.not_to change { Category.count }
-      expect(SiteSetting.itinerary_category_id).to eq(shouty.id)
+      expect(SiteSetting.itinerary_category_id).to eq(managed.id)
     end
 
     it "appends the category id to default_categories_muted so new users don't see it on /latest" do
