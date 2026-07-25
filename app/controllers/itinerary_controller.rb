@@ -98,7 +98,9 @@ class ::ItineraryController < ::ApplicationController
     raise Discourse::NotFound unless trip
     guardian.ensure_can_edit!(trip.topic)
 
-    token = ItineraryShareToken.for_topic(trip.id) || ItineraryShareToken.create_for_topic!(trip.id)
+    token =
+      ItineraryShareToken.for_topic(trip.id) ||
+        ItineraryShareToken.create_for_topic!(trip.id, created_by: current_user)
 
     render_json_dump(token: token.token, url: share_url(token.token))
   end
@@ -112,7 +114,7 @@ class ::ItineraryController < ::ApplicationController
     raise Discourse::NotFound unless trip
     guardian.ensure_can_edit!(trip.topic)
 
-    token = ItineraryShareToken.regenerate_for_topic!(trip.id)
+    token = ItineraryShareToken.regenerate_for_topic!(trip.id, created_by: current_user)
     render_json_dump(token: token.token, url: share_url(token.token))
   end
 
