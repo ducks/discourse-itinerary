@@ -182,18 +182,8 @@ describe ItineraryController, type: :request do
     end
   end
 
-  # TODO: these three .ics request specs all fail with text/html and
-  # status 200 instead of the expected calendar response. The export
-  # action and Itinerary.find code both work correctly when exercised
-  # in a real Discourse instance (the Download .ics button on the
-  # trip page returns a valid VCALENDAR file). The failure is
-  # specific to the rspec request env: the request never reaches the
-  # plugin's controller and instead falls through to the SPA shell
-  # rescue path. Debugging this requires a working local Discourse
-  # dev container, which I don't have set up yet. Re-enable when
-  # that's in place and the root cause is understood.
   describe "GET /itinerary/trips/:id/ics" do
-    xit "returns an iCalendar document with one event per item" do
+    it "returns an iCalendar document with one event per item" do
       t = trip
       item(
         parent_trip: t,
@@ -221,13 +211,13 @@ describe ItineraryController, type: :request do
       expect(response.headers["Content-Disposition"]).to include(".ics")
     end
 
-    xit "returns 404 for a missing trip" do
+    it "returns 404 for a missing trip" do
       sign_in(user)
       get "/itinerary/trips/9999999/ics"
       expect(response.status).to eq(404)
     end
 
-    xit "returns 404 when the trip is in a category the user can't see" do
+    it "returns 404 when the trip is in a category the user can't see" do
       private_category = Fabricate(:private_category, group: Fabricate(:group))
       hidden = trip(category: private_category)
 
