@@ -238,6 +238,7 @@ describe ItineraryController, type: :request do
       expect(body["token"]).to be_present
       expect(body["url"]).to include("/itinerary/shared/")
       expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
+      expect(ItineraryShareToken.for_topic(t.id).created_by).to eq(user)
     end
 
     it "returns the same token on repeat calls" do
@@ -283,6 +284,7 @@ describe ItineraryController, type: :request do
 
       expect(second).not_to eq(first)
       expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
+      expect(ItineraryShareToken.for_topic(t.id).created_by).to eq(user)
       get "/itinerary/shared/#{first}"
       expect(response.status).to eq(404)
     end
