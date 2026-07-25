@@ -23,8 +23,9 @@ travel timeline.
   note) that point at their parent trip via `itinerary_parent_trip_id`
 - **Topic custom fields** = structured metadata
 - **Plugin routes**: `GET /itinerary/trips` (list trips in the configured
-  category; an optional `category_id` must match it), `GET /itinerary/trips/:id` (one trip
-  with its items, day-grouped on the client)
+  category in pages of 50; an optional `category_id` must match it),
+  `GET /itinerary/trips/:id` (one trip with its items, day-grouped on the
+  client), and `GET /itinerary/trips/:id/ics` (calendar download)
 - **Pages**: `/itinerary` (trip list) and `/itinerary/:trip_id` (timeline)
 
 ### Custom fields
@@ -32,19 +33,38 @@ travel timeline.
 Each itinerary topic stores these fields on the standard topic
 `custom_fields` table:
 
-| Field                          | Type     | Example                 |
-| ------------------------------ | -------- | ----------------------- |
-| `itinerary_item_type`          | string   | `flight`                |
-| `itinerary_starts_at`          | string   | `2026-09-20T14:30`      |
-| `itinerary_ends_at`            | string   | `2026-09-21T09:15`      |
-| `itinerary_origin`             | string   | `PDX`                   |
-| `itinerary_destination`        | string   | `MAD`                   |
-| `itinerary_name`               | string   | `Memmo Alfama`          |
-| `itinerary_location`           | string   | `Artrip, Madrid`        |
-| `itinerary_confirmation_code`  | string   | `ABC123`                |
-| `itinerary_status`             | string   | `booked`                |
+| Field                         | Type    | Example               |
+| ----------------------------- | ------- | --------------------- |
+| `itinerary_item_type`         | string  | `flight`              |
+| `itinerary_parent_trip_id`    | integer | `123`                 |
+| `itinerary_starts_at`         | string  | `2026-09-20T14:30`    |
+| `itinerary_ends_at`           | string  | `2026-09-21T09:15`    |
+| `itinerary_start_timezone`    | string  | `America/Los_Angeles` |
+| `itinerary_end_timezone`      | string  | `Europe/Madrid`       |
+| `itinerary_origin`            | string  | `PDX`                 |
+| `itinerary_destination`       | string  | `MAD`                 |
+| `itinerary_name`              | string  | `Memmo Alfama`        |
+| `itinerary_location`          | string  | `Artrip, Madrid`      |
+| `itinerary_confirmation_code` | string  | `ABC123`              |
+| `itinerary_status`            | string  | `booked`              |
+| `itinerary_cost_amount`       | string  | `842.50`              |
+| `itinerary_cost_currency`     | string  | `USD`                 |
 
-Timestamps are stored as ISO-8601 strings; sorting is lexical.
+Dates and local wall-clock times are stored as ISO-8601 strings. IANA
+timezone fields supply the offset and daylight-saving context for validation
+and calendar export. Cost amount and currency must be supplied together.
+
+### Permissions and sharing
+
+Category permissions are the collaboration boundary for authenticated pages
+and JSON routes. A user must be able to edit a trip topic to create or rotate
+its public share URL. Public URLs are bearer links: anyone who has one can see
+the read-only itinerary until an editor regenerates the token.
+
+Public views omit creators, topic links, costs, and confirmation codes.
+Confirmation codes also stay out of synthesized post bodies. Calendar files
+omit them unless an administrator explicitly enables the corresponding site
+setting.
 
 ## Status
 
@@ -63,11 +83,15 @@ Timestamps are stored as ISO-8601 strings; sorting is lexical.
 - **v0.7** - iCalendar (.ics) export per trip. Download a single
   calendar file containing one VEVENT per item with a start time;
   import into Apple Calendar, Google Calendar, or Outlook.
+- **v0.8-v0.10** - timezone-aware items and calendar exports, optional
+  per-item costs and totals, and read-only public share links.
+- **v0.11** - permissions and data-integrity hardening, safe category
+  provisioning, paginated trip lists, sensitive-data controls, atomic share
+  tokens, and standards-compliant timezone/UTF-8 calendar output.
 - **later** — filters, status tracking, drag-reorder, per-user
   subscribe URLs so calendar apps can subscribe rather than download
 
 No calendar sync, email parsing, or map view. Not planned for the near term.
-ICS export shipped in v0.7.
 
 ## Site settings
 
@@ -75,6 +99,8 @@ ICS export shipped in v0.7.
 - `itinerary_category_id` (default: -1) - id of the category the plugin
   treats as the itinerary workspace. Auto-set on first boot when the
   plugin provisions its default category; can be repointed in admin.
+- `itinerary_include_confirmation_codes_in_ics` (default: false) — include
+  sensitive confirmation codes in downloaded calendar files.
 
 ## Requirements
 
@@ -99,6 +125,7 @@ run rspec from there:
 ln -s $PWD ~/discourse/discourse/plugins/discourse-itinerary
 cd ~/discourse/discourse
 bin/rspec plugins/discourse-itinerary/spec/
+bin/qunit --standalone plugins/discourse-itinerary/test/javascripts/
 ```
 
 ## License
