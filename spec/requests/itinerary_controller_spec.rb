@@ -3,7 +3,7 @@
 require "rails_helper"
 
 describe ItineraryController, type: :request do
-  fab!(:user)
+  fab!(:user) { Fabricate(:user, trust_level: TrustLevel[1]) }
   fab!(:category)
 
   before do
@@ -11,8 +11,12 @@ describe ItineraryController, type: :request do
     SiteSetting.itinerary_category_id = category.id
   end
 
-  def trip(starts_at: "2026-09-20", category: self.category, title: nil)
-    attrs = { category: category, title: title || "Itinerary trip fixture #{SecureRandom.hex(4)}" }
+  def trip(starts_at: "2026-09-20", category: self.category, title: nil, user: self.user)
+    attrs = {
+      category: category,
+      title: title || "Itinerary trip fixture #{SecureRandom.hex(4)}",
+      user: user,
+    }
     topic = Fabricate(:topic, **attrs)
     topic.custom_fields["itinerary_item_type"] = "trip"
     topic.custom_fields["itinerary_starts_at"] = starts_at
@@ -257,6 +261,25 @@ describe ItineraryController, type: :request do
       expect(first).to eq(second)
       expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
     end
+
+    it "rejects a signed-in viewer who cannot edit the trip" do
+      t = trip(user: Fabricate(:user))
+      sign_in(user)
+
+      post "/itinerary/trips/#{t.id}/share"
+
+      expect(response.status).to eq(403)
+      expect(ItineraryShareToken.where(topic_id: t.id)).to be_empty
+    end
+
+    it "requires a logged-in user" do
+      t = trip
+
+      post "/itinerary/trips/#{t.id}/share"
+
+      expect(response.status).to eq(403)
+      expect(ItineraryShareToken.where(topic_id: t.id)).to be_empty
+    end
   end
 
   describe "POST /itinerary/trips/:id/share/regenerate" do
@@ -272,6 +295,19 @@ describe ItineraryController, type: :request do
       expect(ItineraryShareToken.where(topic_id: t.id).count).to eq(1)
       get "/itinerary/shared/#{first}"
       expect(response.status).to eq(404)
+    end
+
+    it "does not let a viewer invalidate an existing share link" do
+      t = trip
+      sign_in(user)
+      post "/itinerary/trips/#{t.id}/share"
+      original = response.parsed_body["token"]
+
+      sign_in(Fabricate(:user))
+      post "/itinerary/trips/#{t.id}/share/regenerate"
+
+      expect(response.status).to eq(403)
+      expect(ItineraryShareToken.for_topic(t.id).token).to eq(original)
     end
   end
 
