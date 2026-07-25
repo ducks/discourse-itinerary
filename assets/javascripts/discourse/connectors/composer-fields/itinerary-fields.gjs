@@ -6,6 +6,7 @@ import { service } from "@ember/service";
 import { ajax } from "discourse/lib/ajax";
 import { and, eq, or } from "discourse/truth-helpers";
 import { i18n } from "discourse-i18n";
+import { buildItineraryBody } from "../../lib/itinerary-body";
 
 // Itinerary metadata inputs that appear in the composer when a new
 // topic is being authored or the OP is being edited. Mounted into the
@@ -241,35 +242,7 @@ export default class ItineraryFields extends Component {
       return;
     }
 
-    const lines = [];
-    const push = (label, value) => {
-      if (value) {
-        lines.push(`- ${label}: ${value}`);
-      }
-    };
-
-    push("Starts", this.composer.itinerary_starts_at);
-    push("Ends", this.composer.itinerary_ends_at);
-    if (this.composer.itinerary_origin || this.composer.itinerary_destination) {
-      push(
-        "Route",
-        [this.composer.itinerary_origin, this.composer.itinerary_destination]
-          .filter(Boolean)
-          .join(" -> "),
-      );
-    }
-    push("Name", this.composer.itinerary_name);
-    push("Location", this.composer.itinerary_location);
-    push("Confirmation", this.composer.itinerary_confirmation_code);
-    push("Status", this.composer.itinerary_status);
-    if (this.composer.itinerary_cost_amount && this.composer.itinerary_cost_currency) {
-      push(
-        "Cost",
-        `${this.composer.itinerary_cost_amount} ${this.composer.itinerary_cost_currency}`,
-      );
-    }
-
-    const body = lines.length ? lines.join("\n") : "";
+    const body = buildItineraryBody(this.composer);
     this.lastSynthesizedBody = body;
     this.composer.set("reply", body);
   }

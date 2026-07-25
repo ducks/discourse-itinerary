@@ -114,7 +114,7 @@ describe DiscourseItinerary::IcsFormatter do
       expect(ics).to include("SUMMARY:Hotel: Artrip (Madrid)")
     end
 
-    it "puts confirmation code and status in the description" do
+    it "omits confirmation codes by default while retaining status" do
       flight =
         make_item(
           trip: trip,
@@ -124,6 +124,23 @@ describe DiscourseItinerary::IcsFormatter do
           status: "booked",
         )
       ics = described_class.call(trip: trip, items: [flight])
+      expect(ics).to include("DESCRIPTION:Status: booked")
+      expect(ics).not_to include("ABC123")
+    end
+
+    it "includes confirmation codes when the site setting explicitly enables them" do
+      SiteSetting.itinerary_include_confirmation_codes_in_ics = true
+      flight =
+        make_item(
+          trip: trip,
+          starts_at: "2026-09-20T14:30",
+          item_type: "flight",
+          confirmation_code: "ABC123",
+          status: "booked",
+        )
+
+      ics = described_class.call(trip: trip, items: [flight])
+
       expect(ics).to include("DESCRIPTION:Confirmation: ABC123\\nStatus: booked")
     end
 
