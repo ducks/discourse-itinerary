@@ -9,6 +9,7 @@ class ::ItineraryController < ::ApplicationController
   skip_before_action :check_xhr, only: %i[shared]
   skip_before_action :preload_json, only: %i[shared]
   skip_before_action :redirect_to_login_if_required, only: %i[shared]
+  before_action :ensure_logged_in, only: %i[share regenerate_share]
 
   # GET /itinerary  and  GET /itinerary/:trip_id  (HTML)
   #
@@ -89,12 +90,13 @@ class ::ItineraryController < ::ApplicationController
   #
   # Returns the existing share token for this trip, creating one if
   # the trip has never been shared. Idempotent on repeat clicks.
-  # Requires the caller can see the trip; the controller treats
-  # "can see the trip" as "may produce a share URL for it" - same
-  # bar as the existing edit / view flows.
+  # Requires the caller to be able to edit the trip. Creating a
+  # bearer URL can expose a private-category itinerary outside
+  # Discourse, so visibility alone is not enough authority.
   def share
     trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
     raise Discourse::NotFound unless trip
+    guardian.ensure_can_edit!(trip.topic)
 
     token = ItineraryShareToken.for_topic(trip.id) || ItineraryShareToken.create_for_topic!(trip.id)
 
@@ -104,10 +106,11 @@ class ::ItineraryController < ::ApplicationController
   # POST /itinerary/trips/:id/share/regenerate
   #
   # Replaces the existing token with a new one, invalidating any
-  # previously distributed URL. Same auth bar as `share`.
+  # previously distributed URL. Same edit-permission bar as `share`.
   def regenerate_share
     trip = DiscourseItinerary::Itinerary.find(params[:id], guardian: guardian)
     raise Discourse::NotFound unless trip
+    guardian.ensure_can_edit!(trip.topic)
 
     token = ItineraryShareToken.regenerate_for_topic!(trip.id)
     render_json_dump(token: token.token, url: share_url(token.token))

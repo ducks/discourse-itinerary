@@ -197,9 +197,20 @@ after_initialize do
     # share token; the regenerate variant rotates it. The public
     # GET reads the token out of the URL and renders a read-only
     # view with no session required.
-    post "/itinerary/trips/:id/share" => "itinerary#share", :constraints => { id: /\d+/ }
-    post "/itinerary/trips/:id/share/regenerate" => "itinerary#regenerate_share",
+    post "/itinerary/trips/:id/share" => "itinerary#share",
+         :defaults => {
+           format: :json,
+         },
          :constraints => {
+           format: :json,
+           id: /\d+/,
+         }
+    post "/itinerary/trips/:id/share/regenerate" => "itinerary#regenerate_share",
+         :defaults => {
+           format: :json,
+         },
+         :constraints => {
+           format: :json,
            id: /\d+/,
          }
     get "/itinerary/shared/:token" => "itinerary#shared",
