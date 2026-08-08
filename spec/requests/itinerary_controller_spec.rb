@@ -294,6 +294,93 @@ describe ItineraryController, type: :request do
     end
   end
 
+  describe "calendar subscriptions" do
+    it "creates one stable subscription URL for the signed-in user" do
+      sign_in(user)
+
+      post "/itinerary/calendar-subscription"
+      first_url = response.parsed_body["url"]
+      post "/itinerary/calendar-subscription"
+
+      expect(response.status).to eq(200)
+      expect(response.parsed_body["url"]).to eq(first_url)
+      expect(first_url).to include("/itinerary/calendar/")
+      expect(ItineraryCalendarToken.where(user_id: user.id).count).to eq(1)
+    end
+
+    it "requires login to create a subscription" do
+      post "/itinerary/calendar-subscription"
+
+      expect(response.status).to eq(403)
+      expect(ItineraryCalendarToken.count).to eq(0)
+    end
+
+    it "serves a current calendar without a session" do
+      visible_trip = trip(title: "Visible itinerary trip")
+      visible_item =
+        item(
+          parent_trip: visible_trip,
+          starts_at: "2026-09-20T14:30",
+          origin: "PDX",
+          destination: "MAD",
+        )
+      sign_in(user)
+      post "/itinerary/calendar-subscription"
+      url = response.parsed_body["url"]
+
+      sign_out
+      get URI(url).path
+
+      expect(response.status).to eq(200)
+      expect(response.media_type).to eq("text/calendar")
+      expect(response.body).to include("X-WR-CALNAME:My Itinerary")
+      expect(response.body).to include("UID:itinerary-#{visible_item.id}")
+      expect(response.headers["Cache-Control"]).to include("no-store")
+    end
+
+    it "reflects current visibility on every request" do
+      group = Fabricate(:group)
+      private_category = Fabricate(:private_category, group: group)
+      SiteSetting.itinerary_category_id = private_category.id
+      group.add(user)
+      private_trip = trip(category: private_category)
+      private_item = item(parent_trip: private_trip, starts_at: "2026-09-20T14:30", origin: "PDX")
+      private_item.update!(category: private_category)
+      sign_in(user)
+      post "/itinerary/calendar-subscription"
+      path = URI(response.parsed_body["url"]).path
+
+      sign_out
+      get path
+      expect(response.body).to include("UID:itinerary-#{private_item.id}")
+
+      group.remove(user)
+      get path
+      expect(response.body).not_to include("UID:itinerary-#{private_item.id}")
+    end
+
+    it "regenerates the URL and revokes the previous token" do
+      sign_in(user)
+      post "/itinerary/calendar-subscription"
+      old_path = URI(response.parsed_body["url"]).path
+
+      post "/itinerary/calendar-subscription/regenerate"
+      new_path = URI(response.parsed_body["url"]).path
+
+      expect(new_path).not_to eq(old_path)
+      sign_out
+      get old_path
+      expect(response.status).to eq(404)
+      get new_path
+      expect(response.status).to eq(200)
+    end
+
+    it "returns 404 for an unknown token" do
+      get "/itinerary/calendar/notarealtoken/ics"
+      expect(response.status).to eq(404)
+    end
+  end
+
   describe "POST /itinerary/trips/:id/share/regenerate" do
     it "rotates the token, invalidating the previous one" do
       t = trip

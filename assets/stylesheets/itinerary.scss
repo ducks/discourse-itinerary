@@ -70,6 +70,45 @@ body.composer-itinerary-item-mode {
   &__add {
     flex-shrink: 0;
   }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.itinerary-calendar-subscription {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--primary-very-low);
+  border: 1px solid var(--primary-low);
+  border-radius: 4px;
+
+  label {
+    display: flex;
+    flex-direction: column;
+    color: var(--primary-medium);
+    font-size: 0.85em;
+  }
+
+  input {
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.4rem;
+    font-family: monospace;
+    font-size: 0.9em;
+  }
+
+  p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--primary-medium);
+    font-size: 0.85em;
+  }
 }
 
 .itinerary-trips {

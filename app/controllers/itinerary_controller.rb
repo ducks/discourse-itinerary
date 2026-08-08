@@ -9,10 +9,16 @@ class ::ItineraryController < ::ApplicationController
   # The public share view doesn't require a logged-in session - the
   # whole point is to hand someone outside Discourse a URL that just
   # works. Skip the auth checks Discourse normally enforces.
-  skip_before_action :check_xhr, only: %i[export shared]
-  skip_before_action :preload_json, only: %i[export shared]
-  skip_before_action :redirect_to_login_if_required, only: %i[shared]
-  before_action :ensure_logged_in, only: %i[share regenerate_share]
+  skip_before_action :check_xhr, only: %i[export shared calendar]
+  skip_before_action :preload_json, only: %i[export shared calendar]
+  skip_before_action :redirect_to_login_if_required, only: %i[shared calendar]
+  before_action :ensure_logged_in,
+                only: %i[
+                  share
+                  regenerate_share
+                  calendar_subscription
+                  regenerate_calendar_subscription
+                ]
 
   # GET /itinerary  and  GET /itinerary/:trip_id  (HTML)
   #
@@ -98,6 +104,60 @@ class ::ItineraryController < ::ApplicationController
     render plain: ics, content_type: "text/calendar; charset=utf-8"
   end
 
+  # POST /itinerary/calendar-subscription
+  #
+  # Returns a stable bearer URL that calendar clients can poll without a
+  # Discourse session. One token covers every itinerary trip the current user
+  # can see; permissions are evaluated again on every feed request.
+  def calendar_subscription
+    token =
+      ItineraryCalendarToken.for_user(current_user.id) ||
+        ItineraryCalendarToken.create_for_user!(current_user)
+
+    render_json_dump(url: calendar_url(token.token))
+  end
+
+  # POST /itinerary/calendar-subscription/regenerate
+  #
+  # Rotates the bearer credential, immediately invalidating the old URL.
+  def regenerate_calendar_subscription
+    token = ItineraryCalendarToken.regenerate_for_user!(current_user)
+    render_json_dump(url: calendar_url(token.token))
+  end
+
+  # GET /itinerary/calendar/:token/ics
+  #
+  # Calendar applications periodically fetch this endpoint. The token is the
+  # credential, so no browser cookie is required. Generate the document from
+  # current data on every request so edits and permission changes flow through
+  # to the subscriber on its next refresh.
+  def calendar
+    token = ItineraryCalendarToken.includes(:user).find_by(token: params[:token])
+    user = token&.user
+    return head :not_found unless user&.active? && !user.suspended?
+
+    category = DiscourseItinerary.category
+    return head :not_found unless category
+
+    user_guardian = Guardian.new(user)
+    trips =
+      DiscourseItinerary::TripFinder
+        .new(guardian: user_guardian, category: category)
+        .call
+        .map { |topic| DiscourseItinerary::Itinerary.new(topic, guardian: user_guardian) }
+    items = trips.flat_map(&:items)
+    ics =
+      DiscourseItinerary::IcsFormatter.call(
+        items: items,
+        calendar_name: I18n.t("itinerary.calendar_name"),
+      )
+
+    response.headers["Content-Disposition"] = 'inline; filename="itinerary.ics"'
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    render plain: ics, content_type: "text/calendar; charset=utf-8"
+  end
+
   # POST /itinerary/trips/:id/share
   #
   # Returns the existing share token for this trip, creating one if
@@ -166,6 +226,10 @@ class ::ItineraryController < ::ApplicationController
 
   def share_url(token)
     "#{Discourse.base_url}/itinerary/shared/#{token}"
+  end
+
+  def calendar_url(token)
+    "#{Discourse.base_url}/itinerary/calendar/#{token}/ics"
   end
 
   # The site setting is the server-side workspace boundary. Returning 404 for

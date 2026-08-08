@@ -147,6 +147,7 @@ after_initialize do
   require_relative "lib/discourse_itinerary/category_provisioner"
   require_relative "lib/discourse_itinerary/ics_formatter"
   require_relative "app/models/itinerary_share_token"
+  require_relative "app/models/itinerary_calendar_token"
   require_relative "app/serializers/trip_serializer"
   require_relative "app/serializers/itinerary_item_serializer"
   require_relative "app/controllers/itinerary_controller"
@@ -193,6 +194,31 @@ after_initialize do
         },
         :constraints => {
           id: /\d+/,
+        }
+
+    # Per-user calendar subscription. The management endpoints require a
+    # logged-in session; the generated bearer URL intentionally does not.
+    post "/itinerary/calendar-subscription" => "itinerary#calendar_subscription",
+         :defaults => {
+           format: :json,
+         },
+         :constraints => {
+           format: :json,
+         }
+    post "/itinerary/calendar-subscription/regenerate" =>
+           "itinerary#regenerate_calendar_subscription",
+         :defaults => {
+           format: :json,
+         },
+         :constraints => {
+           format: :json,
+         }
+    get "/itinerary/calendar/:token/ics" => "itinerary#calendar",
+        :defaults => {
+          format: :ics,
+        },
+        :constraints => {
+          token: /[A-Za-z0-9_-]+/,
         }
 
     # Share-by-link endpoints. POST creates or returns the existing
