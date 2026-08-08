@@ -24,6 +24,7 @@ export default class TripList extends Component {
   @tracked hasMore;
   @tracked nextPage;
   @tracked loadingMore = false;
+  @tracked calendarUrl = null;
 
   formatDate = shortItineraryDate;
 
@@ -71,18 +72,69 @@ export default class TripList extends Component {
     }
   }
 
+  @action
+  async subscribeCalendar() {
+    const result = await ajax("/itinerary/calendar-subscription", { type: "POST" });
+    this.calendarUrl = result.url;
+  }
+
+  @action
+  async regenerateCalendarSubscription() {
+    const result = await ajax("/itinerary/calendar-subscription/regenerate", {
+      type: "POST",
+    });
+    this.calendarUrl = result.url;
+  }
+
+  @action
+  copyCalendarUrl() {
+    if (this.calendarUrl) {
+      navigator.clipboard?.writeText(this.calendarUrl);
+    }
+  }
+
   <template>
     <div class="itinerary-trip-list">
       <div class="itinerary-trip-list__header">
         <h2>{{i18n "itinerary.trips"}}</h2>
-        <button
-          type="button"
-          class="btn btn-primary itinerary-trip-list__add"
-          {{on "click" this.addTrip}}
-        >
-          {{i18n "itinerary.add_trip"}}
-        </button>
+        <div class="itinerary-trip-list__actions">
+          <button
+            type="button"
+            class="btn btn-default"
+            title={{i18n "itinerary.subscribe_calendar_title"}}
+            {{on "click" this.subscribeCalendar}}
+          >
+            {{i18n "itinerary.subscribe_calendar"}}
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary itinerary-trip-list__add"
+            {{on "click" this.addTrip}}
+          >
+            {{i18n "itinerary.add_trip"}}
+          </button>
+        </div>
       </div>
+
+      {{#if this.calendarUrl}}
+        <div class="itinerary-calendar-subscription">
+          <label>
+            <span>{{i18n "itinerary.calendar_subscription_url"}}</span>
+            <input type="text" readonly value={{this.calendarUrl}} />
+          </label>
+          <button type="button" class="btn btn-default" {{on "click" this.copyCalendarUrl}}>
+            {{i18n "itinerary.copy"}}
+          </button>
+          <button
+            type="button"
+            class="btn btn-default"
+            {{on "click" this.regenerateCalendarSubscription}}
+          >
+            {{i18n "itinerary.regenerate"}}
+          </button>
+          <p>{{i18n "itinerary.calendar_subscription_warning"}}</p>
+        </div>
+      {{/if}}
 
       {{#if this.trips.length}}
         <ul class="itinerary-trips">

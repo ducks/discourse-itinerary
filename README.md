@@ -25,7 +25,8 @@ travel timeline.
 - **Plugin routes**: `GET /itinerary/trips` (list trips in the configured
   category in pages of 50; an optional `category_id` must match it),
   `GET /itinerary/trips/:id` (one trip with its items, day-grouped on the
-  client), and `GET /itinerary/trips/:id/ics` (calendar download)
+  client), `GET /itinerary/trips/:id/ics` (calendar download), and a
+  token-authenticated per-user calendar subscription feed
 - **Pages**: `/itinerary` (trip list) and `/itinerary/:trip_id` (timeline)
 
 ### Custom fields
@@ -66,6 +67,11 @@ Confirmation codes also stay out of synthesized post bodies. Calendar files
 omit them unless an administrator explicitly enables the corresponding site
 setting.
 
+Each user can create one private calendar subscription URL from `/itinerary`.
+Calendar clients poll that bearer URL and receive the trips the user can
+currently see. Regenerating the URL revokes the previous token immediately;
+category permission changes take effect the next time the feed is requested.
+
 ## Status
 
 - **v0.1** — JSON route + Rails-side query
@@ -88,10 +94,12 @@ setting.
 - **v0.11** - permissions and data-integrity hardening, safe category
   provisioning, paginated trip lists, sensitive-data controls, atomic share
   tokens, and standards-compliant timezone/UTF-8 calendar output.
-- **later** — filters, status tracking, drag-reorder, per-user
-  subscribe URLs so calendar apps can subscribe rather than download
+- **v0.12** — revocable per-user subscribe URLs so calendar apps can poll an
+  always-current feed rather than importing a one-time download
+- **later** — filters, status tracking, drag-reorder
 
-No calendar sync, email parsing, or map view. Not planned for the near term.
+No two-way calendar sync, email parsing, or map view. Not planned for the near
+term.
 
 ## Site settings
 

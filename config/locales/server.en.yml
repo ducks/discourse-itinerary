@@ -1,3 +1,5 @@
 en:
+  itinerary:
+    calendar_name: "My Itinerary"
   site_settings:
     itinerary_include_confirmation_codes_in_ics: "Include sensitive booking confirmation codes in downloaded itinerary calendar files."

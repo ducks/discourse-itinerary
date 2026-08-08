@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 module DiscourseItinerary
-  # Formats a trip and its items as an iCalendar (RFC 5545) document.
+  # Formats itinerary items as an iCalendar (RFC 5545) document. A trip title
+  # supplies the calendar name for one-trip downloads; aggregate feeds pass an
+  # explicit calendar name instead.
   #
   # The output is a single VCALENDAR with one VEVENT per item that has
   # a `starts_at` value. Items without a start time (a bare note, say)
@@ -19,13 +21,13 @@ module DiscourseItinerary
     PRODID = "-//Discourse Itinerary//EN"
     LINE_TERMINATOR = "\r\n"
 
-    def self.call(trip:, items:)
-      new(trip: trip, items: items).call
+    def self.call(items:, trip: nil, calendar_name: nil)
+      new(items: items, calendar_name: calendar_name || trip&.title).call
     end
 
-    def initialize(trip:, items:)
-      @trip = trip
+    def initialize(items:, calendar_name:)
       @items = items
+      @calendar_name = calendar_name
     end
 
     def call
@@ -35,7 +37,7 @@ module DiscourseItinerary
       lines << "PRODID:#{PRODID}"
       lines << "CALSCALE:GREGORIAN"
       lines << "METHOD:PUBLISH"
-      lines << "X-WR-CALNAME:#{escape_text(@trip.title)}"
+      lines << "X-WR-CALNAME:#{escape_text(@calendar_name)}"
 
       vtimezone_lines.each { |l| lines << l }
 
